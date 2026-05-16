@@ -1,0 +1,5 @@
+content/bin/
+include/
+lib/
+b.sh
+*.clangd
