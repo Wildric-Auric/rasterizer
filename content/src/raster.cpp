@@ -21,6 +21,12 @@ void ras_set_pixel(const ras_framebuffer_t* const framebuffer, const v2i32& coor
     framebuffer->buff[coord.x * 4 + 3 + coord.y * (framebuffer->size.x * 4)] = 255;
 }
 
+void ras_set_pixel_safe(const ras_framebuffer_t* const framebuffer, const v2i32& coord, const v3ui8& color) {
+    if (coord.x < 0 || coord.y < 0 || coord.x >= framebuffer->size.x || coord.y >= framebuffer->size.y)
+        return;
+    ras_set_pixel(framebuffer, coord, color);
+}
+
 void ras_get_pixel(const ras_framebuffer_t* const framebuffer, const v2i32& coord, v4ui8* const out) {
     (*out).x = *(framebuffer->buff + coord.x * 4 + 0 + coord.y * (framebuffer->size.x * 4));
     (*out).y = *(framebuffer->buff + coord.x * 4 + 1 + coord.y * (framebuffer->size.x * 4));
@@ -52,14 +58,14 @@ void raster_init() {
     init_framebuffer(&ras_main_framebuffer, {512, 512});
 }
 
-void raster_draw_circle_test(const ras_framebuffer_t* const framebuffer, const ras_prim_circle_t* const circle) {
+void raster_draw_prim_circle(const ras_framebuffer_t* const framebuffer, const ras_prim_circle_t* const circle) {
     v2i32 tmp;
-    v2i32 s  = v2i32(framebuffer->size.x * 0.5, framebuffer->size.y * 0.5);
+    v2i32 s  = v2i32((framebuffer->size.x>>1) + circle->position.x, (framebuffer->size.y>>1) + circle->position.y);
     int b;
     for (int y = -circle->radius; y < circle->radius && y+circle->radius < circle->partial; y++) {
         b = sqrt(pow(circle->radius, 2.0) - pow(circle->radius < 0 ? circle->radius - y : y, 2.0));
         for (int x = -b; x < b; x++) { 
-            ras_set_pixel(framebuffer, {x+s.x,y+s.y}, circle->color);
+            ras_set_pixel_safe(framebuffer, {x+s.x,y+s.y}, circle->color);
         }
     }
 }
@@ -74,7 +80,7 @@ void raster_update() {
     c.position.y = 0;
     c.color.x = 255; c.color.y = 0; c.color.z = 0;
     c.partial = (col/255.0)*2.0*c.radius;
-    raster_draw_circle_test(&ras_main_framebuffer, &c);
+    raster_draw_prim_circle(&ras_main_framebuffer, &c);
 }
 
 void raster_destroy() {
