@@ -8,6 +8,13 @@ struct ras_framebuffer_t {
    v2i32  size;
 };
 
+struct ras_prim_circle_t {
+    float radius;
+    int   partial;
+    v2i32 position;
+    v3ui8 color;
+};
+
 ras_framebuffer_t* get_main_framebuffer();
 void               raster_init();
 void               raster_update();

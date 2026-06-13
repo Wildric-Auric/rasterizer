@@ -1,6 +1,7 @@
 #include "raster.h"
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 
 ras_framebuffer_t ras_main_framebuffer;
 
@@ -51,24 +52,29 @@ void raster_init() {
     init_framebuffer(&ras_main_framebuffer, {512, 512});
 }
 
-void raster_draw_circle_test(const ras_framebuffer_t* const framebuffer, const v3ui8& color) {
-    v2i32 coord = v2i32(-framebuffer->size.x * 0.5, -framebuffer->size.y * 0.5);
+void raster_draw_circle_test(const ras_framebuffer_t* const framebuffer, const ras_prim_circle_t* const circle) {
     v2i32 tmp;
-    for (int y = 0; y < framebuffer->size.y; y++) {
-    for (int x = 0; x < framebuffer->size.x; x++) {
-        tmp = coord + v2i32(x,y);
-        if (std::sqrt(tmp.x * tmp.x + tmp.y * tmp.y) < 0.25 * framebuffer->size.x) 
-            ras_set_pixel(framebuffer, {x,y}, color);
-        else
-            ras_set_pixel(framebuffer, {x,y}, {255,255,255});
-    }}
+    v2i32 s  = v2i32(framebuffer->size.x * 0.5, framebuffer->size.y * 0.5);
+    int b;
+    for (int y = -circle->radius; y < circle->radius && y+circle->radius < circle->partial; y++) {
+        b = sqrt(pow(circle->radius, 2.0) - pow(circle->radius < 0 ? circle->radius - y : y, 2.0));
+        for (int x = -b; x < b; x++) { 
+            ras_set_pixel(framebuffer, {x+s.x,y+s.y}, circle->color);
+        }
+    }
 }
 
 void raster_update() {
     static ui8 col = 0;
     ++col;
-    //fill_framebuffer(&ras_main_framebuffer,{255,col,0});
-    raster_draw_circle_test(&ras_main_framebuffer, {255,0,0});
+    fill_framebuffer(&ras_main_framebuffer,{255,col,0});
+    ras_prim_circle_t c;
+    c.radius     = 100;
+    c.position.x = 0;
+    c.position.y = 0;
+    c.color.x = 255; c.color.y = 0; c.color.z = 0;
+    c.partial = (col/255.0)*2.0*c.radius;
+    raster_draw_circle_test(&ras_main_framebuffer, &c);
 }
 
 void raster_destroy() {
