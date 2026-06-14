@@ -1,4 +1,5 @@
 #include "raster.h"
+#include "ras_util.h"
 #include <stdlib.h>
 #include <math.h>
 
@@ -36,12 +37,11 @@ void ras_get_pixel(const ras_framebuffer_t* const framebuffer, const v2i32& coor
 void init_framebuffer(ras_framebuffer_t* out_framebuffer, const v2i32& size) {
     out_framebuffer->size.x = size.x;
     out_framebuffer->size.y = size.y;
-    out_framebuffer->buff   = (ui8*)malloc(size.x * size.y * 4 * sizeof(ui8));
+    out_framebuffer->buff   = ras_alloc_n(ui8, size.x * size.y * 4);
 }
 
 void destroy_framebuffer(ras_framebuffer_t* out_framebuffer) {
-    free(out_framebuffer->buff);
-    out_framebuffer->buff = 0;
+    ras_free(out_framebuffer->buff);
     out_framebuffer->size = {-1,1};
 }
 

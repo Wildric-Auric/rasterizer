@@ -1,4 +1,5 @@
 #include "raster.h"
+#include "ras_util.h"
 #include <stdlib.h>
 
 void test_draw_circle() {
@@ -39,7 +40,7 @@ void test_draw_triangles() {
     ras_triangle_list_cmd_t cmd;
     cmd.cull_mode = ras_orientation_cw;
     cmd.count     = 5;
-    cmd.triangles = (ras_prim_triangle_t*)malloc(cmd.count * sizeof(ras_prim_triangle_t));
+    cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
     ras_prim_triangle_t* tri;
     for (int i = 0; i < 4; ++i) {
         tri = cmd.triangles + i;
@@ -62,5 +63,5 @@ void test_draw_triangles() {
     ras_center_coord(fmbuff, &tri->position[1].x);
     ras_center_coord(fmbuff, &tri->position[2].x);
     ras_draw_triangle_list(fmbuff, &cmd); 
-    free(cmd.triangles);
+    ras_free(cmd.triangles);
 }
