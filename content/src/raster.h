@@ -17,7 +17,8 @@ struct ras_prim_circle_t {
 
 struct ras_prim_triangle_t {
     v2i32 position[3];
-    v3ui8  color;
+    v2i32 ext_3D[3];
+    v3ui8 color;
 };
 
 enum ras_orientation_ {
@@ -30,6 +31,7 @@ struct ras_triangle_list_cmd_t {
     ras_orientation_     cull_mode; 
     ras_prim_triangle_t* triangles;
     int                  count;
+    m4i32                transform;
 };
 
 // -------- Ctx methods --------
@@ -37,6 +39,8 @@ ras_framebuffer_t* get_main_framebuffer();
 void               raster_init();
 void               raster_update();
 void               raster_destroy(); 
+void               ras_backend_get_mouse(int*, int*);
+void               ras_backend_resize(int, int);
 // -------- Frame buffer methods --------
 void               fill_framebuffer(const ras_framebuffer_t* const, const v3ui8&);
 void               init_framebuffer(ras_framebuffer_t* out_framebuffer, const v2i32& size);

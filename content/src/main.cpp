@@ -7,9 +7,22 @@ extern void raster_update();
 extern void raster_destroy(); 
 extern void* get_raw_framebuffer();
 
-void init() {
-    texture._size.x = 512; texture._size.y = 512;
+void ras_backend_get_mouse(int* x, int* y) {
+    fVec2 v = Inputs::GetMousePosition(); 
+    *x = v.x + (texture._size.x >> 1);
+    *y = v.y + (texture._size.y >> 1);
+}
+
+void ras_backend_resize(int new_size_x, int new_size_y) {
+    if (texture._size.x == new_size_x && texture._size.y != new_size_y)
+        return;
+    if (texture._glID)
+        texture.Destroy();
+    texture._size.x = new_size_x; texture._size.y = new_size_y;
     texture._GPUGen(0, TexChannelInfo::NW_RGBA, TexType_Exp::TexType_Exp_rgba8);
+}
+
+void init() {
     Scene& scene = Scene::CreateNew("NewScene");
     scene.MakeCurrent();
     GameObject& cam_obj = scene.AddObject("cam_obj");

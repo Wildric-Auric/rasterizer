@@ -1,3 +1,4 @@
+#define RAS_MATH_IMPL
 #include "ras_math.h"
 
 int ras_det2(const v2i32& v1, const v2i32& v2) {

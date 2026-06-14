@@ -2,6 +2,7 @@
 #include "ras_util.h"
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 
 ras_framebuffer_t ras_main_framebuffer;
 
@@ -55,6 +56,7 @@ void* get_raw_framebuffer() {
 
 void raster_init() {
     init_framebuffer(&ras_main_framebuffer, {512, 512});
+    ras_backend_resize(ras_main_framebuffer.size.x, ras_main_framebuffer.size.y);
 }
 
 void raster_destroy() {
@@ -106,6 +108,7 @@ void  raster_draw_prim_triangle(const ras_framebuffer_t* const framebuffer, ras_
 
 void ras_draw_triangle_list(const ras_framebuffer_t* const fmbuff, ras_triangle_list_cmd_t* cmd) {
     ras_prim_triangle_t tri;
+    v4i32 coord_3D[3];
     int det;
     for (int i = 0; i < cmd->count; ++i) {
         tri = cmd->triangles[i]; 
@@ -115,6 +118,18 @@ void ras_draw_triangle_list(const ras_framebuffer_t* const fmbuff, ras_triangle_
             case ras_orientation_cw: { if (det < 0) continue; break; }
             default: break;
         }
+        coord_3D[0] = {tri.position[0].x, tri.position[0].y, tri.ext_3D[0].x, tri.ext_3D[0].y}; 
+        coord_3D[1] = {tri.position[1].x, tri.position[1].y, tri.ext_3D[1].x, tri.ext_3D[1].y}; 
+        coord_3D[2] = {tri.position[2].x, tri.position[2].y, tri.ext_3D[2].x, tri.ext_3D[2].y}; 
+
+        coord_3D[0] = cmd->transform * coord_3D[0];
+        coord_3D[1] = cmd->transform * coord_3D[1];
+        coord_3D[2] = cmd->transform * coord_3D[2];
+
+        tri.position[0] = {coord_3D[0].x, coord_3D[0].y};
+        tri.position[1] = {coord_3D[1].x, coord_3D[1].y};
+        tri.position[2] = {coord_3D[2].x, coord_3D[2].y};
+
         raster_draw_prim_triangle(fmbuff, &tri);
     }
 }
@@ -123,6 +138,18 @@ void ras_center_coord(const ras_framebuffer_t* fmb, int* out) {
     *out     = *out     + (fmb->size.x >> 1) ;
     *(out+1) = *(out+1) + (fmb->size.y >> 1) ;
 }
+
+template<typename scalar_g>
+void ras_mat4_identity(ras_mat4<scalar_g>* m, scalar_g val) {
+    m->values[0]  = val;
+    m->values[1]  = 0; m->values[2] = 0; m->values[3] = 0; m->values[4] = 0;
+    m->values[5]  = val;
+    m->values[6]  = 0; m->values[7] = 0; m->values[8] = 0; m->values[9] = 0;
+    m->values[10] = val;
+    m->values[11] = 0; m->values[12] = 0; m->values[13] = 0; m->values[14] = 0;
+    m->values[15] = val;
+}
+
 // ----- loop -------
 #include "ras_test.h"
 

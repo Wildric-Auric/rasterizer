@@ -1,6 +1,7 @@
 #include "raster.h"
 #include "ras_util.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 void test_draw_circle() {
     static ui8 col = 0;
@@ -47,21 +48,34 @@ void test_draw_triangles() {
         tri->position[0] = v2i32(i*32,0) + v2i32(0,0);
         tri->position[1] = v2i32(i*32,0) + v2i32(32,0);
         tri->position[2] = v2i32(i*32,0) + v2i32(0,32);
-        tri->color.x     = 255;
+        tri->ext_3D  [0] = {0,1};
+        tri->ext_3D  [1] = {0,1};
+        tri->ext_3D  [2] = {0,1};
+        tri->color       = {255,0,0};
         ras_center_coord(fmbuff, &tri->position[0].x);
         ras_center_coord(fmbuff, &tri->position[1].x);
         ras_center_coord(fmbuff, &tri->position[2].x);
     }
+    v2i32 mouse;
+    ras_backend_get_mouse(&mouse.x, &mouse.y);
+    mouse.x -= (fmbuff->size.x >> 1);
+    mouse.y -= (fmbuff->size.y >> 1);
+    ras_set_m4_diag(&cmd.transform, 1);
+    ras_m4_translate(&cmd.transform, {mouse.x, mouse.y, 0});
     //---clockwise test---
     tri = cmd.triangles + 4;
     tri->position[0] = v2i32(0,32);
     tri->position[2] = v2i32(32,32);
     tri->position[1] = v2i32(0,64);
-    tri->color.z     = 255;
+    tri->ext_3D  [0] = {0,1};
+    tri->ext_3D  [1] = {0,1};
+    tri->ext_3D  [2] = {0,1};
+    tri->color       = {0,0,255};
 
     ras_center_coord(fmbuff, &tri->position[0].x);
     ras_center_coord(fmbuff, &tri->position[1].x);
     ras_center_coord(fmbuff, &tri->position[2].x);
+    fill_framebuffer(fmbuff, {255,255,0});
     ras_draw_triangle_list(fmbuff, &cmd); 
     ras_free(cmd.triangles);
 }
