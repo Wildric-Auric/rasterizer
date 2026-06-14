@@ -15,6 +15,13 @@ struct ras_prim_circle_t {
     v3ui8 color;
 };
 
+enum ras_triangle_draw_mode_ : ui8 {
+    ras_triangle_draw_mode_uniform       = 0,
+    ras_triangle_draw_mode_wireframe     = 1,
+    ras_triangle_draw_mode_bary          = 2,
+    ras_triangle_draw_mode_user_func     = 3,
+};
+
 struct ras_prim_triangle_t {
     v2i32 position[3];
     v2i32 ext_3D[3];
@@ -27,12 +34,18 @@ enum ras_orientation_ {
     ras_orientation_cc
 };
 
-struct ras_triangle_list_cmd_t {
-    ras_orientation_     cull_mode; 
-    ras_prim_triangle_t* triangles;
-    int                  count;
-    m4i32                transform;
+struct ras_triangle_draw_cmd_t {
+    ras_triangle_draw_mode_ draw_mode;
 };
+
+struct ras_triangle_list_cmd_t {
+    ras_orientation_        cull_mode; 
+    ras_prim_triangle_t*    triangles;
+    int                     count;
+    m4i32                   transform;
+    ras_triangle_draw_cmd_t triangle_cmd;
+};
+
 
 // -------- Ctx methods --------
 ras_framebuffer_t* get_main_framebuffer();
@@ -52,7 +65,7 @@ void*              get_raw_framebuffer();
 //  ------- Raster methods ----------
 void               ras_center_coord(const ras_framebuffer_t*, int* out);
 void               raster_draw_prim_circle(const ras_framebuffer_t* const, const ras_prim_circle_t* const);
-void               raster_draw_prim_triangle(const ras_framebuffer_t* const, ras_prim_triangle_t* const);
-void               ras_draw_triangle_list(const ras_framebuffer_t* const, ras_triangle_list_cmd_t* cmd);
+void               raster_draw_prim_triangle(const ras_framebuffer_t* const, ras_prim_triangle_t* const, const ras_triangle_draw_cmd_t* const);
+void               ras_draw_triangle_list(const ras_framebuffer_t* const, ras_triangle_list_cmd_t*);
 
 #endif

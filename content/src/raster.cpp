@@ -75,7 +75,7 @@ void raster_draw_prim_circle(const ras_framebuffer_t* const framebuffer, const r
     }
 }
 
-void  raster_draw_prim_triangle(const ras_framebuffer_t* const framebuffer, ras_prim_triangle_t* const tri) {
+void  raster_draw_prim_triangle(const ras_framebuffer_t* const framebuffer, ras_prim_triangle_t* const tri, const ras_triangle_draw_cmd_t* cmd) {
     v2i32 bx;
     v2i32 by;
     v2i32 tmp = tri->position[1]; 
@@ -94,14 +94,41 @@ void  raster_draw_prim_triangle(const ras_framebuffer_t* const framebuffer, ras_
     v0 = tri->position[1] - tri->position[0];
     v1 = tri->position[2] - tri->position[1];
     v2 = tri->position[0] - tri->position[2];
+    v3f bary;
     v2i32 p;
+    v3ui8 frag_col;
+    int dt1; int dt2; int dt3;
     int   d;
     for (p.y = by.x; p.y < by.y; ++p.y) {
         for (p.x = bx.x; p.x < bx.y; ++p.x) {
-            if (ras_det2(v0, p - tri->position[0]) < 0) continue;
-            if (ras_det2(v1, p - tri->position[1]) < 0) continue;
-            if (ras_det2(v2, p - tri->position[2]) < 0) continue;
-            ras_set_pixel(framebuffer, p, tri->color);
+            if ((dt1 = ras_det2(v0, p - tri->position[0])) < 0) continue;
+            if ((dt2 = ras_det2(v1, p - tri->position[1])) < 0) continue;
+            if ((dt3 = ras_det2(v2, p - tri->position[2])) < 0) continue;
+            bary.x = (float)dt2 / (float)ras_det2(v1, tri->position[0] - tri->position[1]);
+            bary.y = (float)dt3 / (float)ras_det2(v2, tri->position[1] - tri->position[2]);
+            bary.z = 1 - bary.x - bary.y;
+            switch (cmd->draw_mode) {
+                case ras_triangle_draw_mode_uniform: {
+                    frag_col = tri->color;
+                    break;
+                }
+                case ras_triangle_draw_mode_bary: {
+                    frag_col = v3ui8(255.0 * bary.x, 255.0 * bary.y, 255.0 * bary.z);
+                    break;
+                }
+                case ras_triangle_draw_mode_user_func: {
+                    frag_col = tri->color;
+                    break;
+                }
+                case ras_triangle_draw_mode_wireframe: {
+                    static const float wireframe_width = 0.01; 
+                    if (bary.x > wireframe_width && bary.y > wireframe_width && bary.z > wireframe_width)
+                        continue;
+                    frag_col = v3ui8(0,255,0);
+                    break;
+                }
+            }
+            ras_set_pixel(framebuffer, p, frag_col);
         }
     }
 }
@@ -130,7 +157,7 @@ void ras_draw_triangle_list(const ras_framebuffer_t* const fmbuff, ras_triangle_
         tri.position[1] = {coord_3D[1].x, coord_3D[1].y};
         tri.position[2] = {coord_3D[2].x, coord_3D[2].y};
 
-        raster_draw_prim_triangle(fmbuff, &tri);
+        raster_draw_prim_triangle(fmbuff, &tri, &cmd->triangle_cmd);
     }
 }
 

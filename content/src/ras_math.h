@@ -208,17 +208,17 @@ inline void ras_set_m4_zero(ras_mat4<scal_type_g>* m) {
     m->values[15] = 0;
 }
 
-template<typename scal_type_g> 
-void ras_m4_translate(ras_mat4<scal_type_g>* m, const ras_vec3<scal_type_g>& v) {
+template<typename scal_type_g, typename scal_type_vec_g> 
+void ras_m4_translate(ras_mat4<scal_type_g>* m, const ras_vec3<scal_type_vec_g>& v) {
     m->values[3]  += v.x;
     m->values[7]  += v.y;
     m->values[11] += v.z;
 }
-template<typename scal_type_g> 
-void ras_m4_scale(ras_mat4<scal_type_g>* m, const ras_vec3<scal_type_g>& v) {
-    m->values[3]  *= v.x;
-    m->values[7]  *= v.y;
-    m->values[11] *= v.z;
+template<typename scal_type_g, typename scal_type_vec_g> 
+void ras_m4_scale(ras_mat4<scal_type_g>* m, const ras_vec3<scal_type_vec_g>& v) {
+    m->values[0]  *= v.x;
+    m->values[5]  *= v.y;
+    m->values[10] *= v.z;
 }
 // -------- Define types -----
 
