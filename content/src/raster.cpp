@@ -1,7 +1,6 @@
 #include "raster.h"
 #include <stdlib.h>
 #include <math.h>
-#include <stdio.h>
 
 ras_framebuffer_t ras_main_framebuffer;
 
@@ -58,6 +57,10 @@ void raster_init() {
     init_framebuffer(&ras_main_framebuffer, {512, 512});
 }
 
+void raster_destroy() {
+    destroy_framebuffer(&ras_main_framebuffer);
+}
+
 void raster_draw_prim_circle(const ras_framebuffer_t* const framebuffer, const ras_prim_circle_t* const circle) {
     v2i32 tmp;
     v2i32 s  = v2i32((framebuffer->size.x>>1) + circle->position.x, (framebuffer->size.y>>1) + circle->position.y);
@@ -70,19 +73,60 @@ void raster_draw_prim_circle(const ras_framebuffer_t* const framebuffer, const r
     }
 }
 
-void raster_update() {
-    static ui8 col = 0;
-    ++col;
-    fill_framebuffer(&ras_main_framebuffer,{255,col,0});
-    ras_prim_circle_t c;
-    c.radius     = 100;
-    c.position.x = 0;
-    c.position.y = 0;
-    c.color.x = 255; c.color.y = 0; c.color.z = 0;
-    c.partial = (col/255.0)*2.0*c.radius;
-    raster_draw_prim_circle(&ras_main_framebuffer, &c);
+void  raster_draw_prim_triangle(const ras_framebuffer_t* const framebuffer, ras_prim_triangle_t* const tri) {
+    v2i32 bx;
+    v2i32 by;
+    v2i32 tmp = tri->position[1]; 
+    bx.x = ras_min3(tri->position[0].x, tri->position[1].x, tri->position[2].x);
+    bx.y = ras_max3(tri->position[0].x, tri->position[1].x, tri->position[2].x);
+    by.x = ras_min3(tri->position[0].y, tri->position[1].y, tri->position[2].y);
+    by.y = ras_max3(tri->position[0].y, tri->position[1].y, tri->position[2].y);
+    bx.x = ras_max(bx.x, 0); bx.y = ras_min(bx.y, framebuffer->size.x);
+    by.x = ras_max(by.x, 0); by.y = ras_min(by.y, framebuffer->size.y);
+    v2i32 v0; v2i32 v1; v2i32 v2;
+    bool is_cw = ras_det2(tri->position[1] - tri->position[0], tri->position[2] - tri->position[0]) < 0;
+    if (is_cw) {
+        tri->position[1] = tri->position[2]; 
+        tri->position[2] = tmp;
+    }
+    v0 = tri->position[1] - tri->position[0];
+    v1 = tri->position[2] - tri->position[1];
+    v2 = tri->position[0] - tri->position[2];
+    v2i32 p;
+    int   d;
+    for (p.y = by.x; p.y < by.y; ++p.y) {
+        for (p.x = bx.x; p.x < bx.y; ++p.x) {
+            if (ras_det2(v0, p - tri->position[0]) < 0) continue;
+            if (ras_det2(v1, p - tri->position[1]) < 0) continue;
+            if (ras_det2(v2, p - tri->position[2]) < 0) continue;
+            ras_set_pixel(framebuffer, p, tri->color);
+        }
+    }
 }
 
-void raster_destroy() {
-    destroy_framebuffer(&ras_main_framebuffer);
+void ras_draw_triangle_list(const ras_framebuffer_t* const fmbuff, ras_triangle_list_cmd_t* cmd) {
+    ras_prim_triangle_t tri;
+    int det;
+    for (int i = 0; i < cmd->count; ++i) {
+        tri = cmd->triangles[i]; 
+        det = ras_det2(tri.position[1] - tri.position[0], tri.position[2] - tri.position[0]);
+        switch (cmd->cull_mode) {
+            case ras_orientation_cc: { if (det > 0) continue; break; }
+            case ras_orientation_cw: { if (det < 0) continue; break; }
+            default: break;
+        }
+        raster_draw_prim_triangle(fmbuff, &tri);
+    }
+}
+
+void ras_center_coord(const ras_framebuffer_t* fmb, int* out) {
+    *out     = *out     + (fmb->size.x >> 1) ;
+    *(out+1) = *(out+1) + (fmb->size.y >> 1) ;
+}
+// ----- loop -------
+#include "ras_test.h"
+
+void raster_update() {
+    test_draw_triangles();
+    //test_draw_triangle();
 }

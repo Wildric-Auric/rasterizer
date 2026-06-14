@@ -15,10 +15,29 @@ struct ras_prim_circle_t {
     v3ui8 color;
 };
 
+struct ras_prim_triangle_t {
+    v2i32 position[3];
+    v3ui8  color;
+};
+
+enum ras_orientation_ {
+    ras_orientation_none,
+    ras_orientation_cw,
+    ras_orientation_cc
+};
+
+struct ras_triangle_list_cmd_t {
+    ras_orientation_     cull_mode; 
+    ras_prim_triangle_t* triangles;
+    int                  count;
+};
+
+// -------- Ctx methods --------
 ras_framebuffer_t* get_main_framebuffer();
 void               raster_init();
 void               raster_update();
 void               raster_destroy(); 
+// -------- Frame buffer methods --------
 void               fill_framebuffer(const ras_framebuffer_t* const, const v3ui8&);
 void               init_framebuffer(ras_framebuffer_t* out_framebuffer, const v2i32& size);
 void               destroy_framebuffer(ras_framebuffer_t* out_framebuffer);
@@ -26,6 +45,10 @@ void               ras_set_pixel(const ras_framebuffer_t* const framebuffer, con
 void               ras_set_pixel_safe(const ras_framebuffer_t* const framebuffer, const v2i32& coord, const v3ui8& color);
 void               ras_get_pixel(const ras_framebuffer_t* const framebuffer, const v2i32& coord, v4ui8* out);
 void*              get_raw_framebuffer();
+//  ------- Raster methods ----------
+void               ras_center_coord(const ras_framebuffer_t*, int* out);
 void               raster_draw_prim_circle(const ras_framebuffer_t* const, const ras_prim_circle_t* const);
+void               raster_draw_prim_triangle(const ras_framebuffer_t* const, ras_prim_triangle_t* const);
+void               ras_draw_triangle_list(const ras_framebuffer_t* const, ras_triangle_list_cmd_t* cmd);
 
 #endif
