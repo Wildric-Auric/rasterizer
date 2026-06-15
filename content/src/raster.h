@@ -23,8 +23,7 @@ enum ras_triangle_draw_mode_ : ui8 {
 };
 
 struct ras_prim_triangle_t {
-    v2f   position[3];
-    v2f   ext_3D[3];
+    v4f   position[3];
     v3ui8 color;
 };
 

@@ -34,7 +34,7 @@ double ras_pow(double, double);
 template<typename scalar_type_g>
 struct ras_vec3 {
     scalar_type_g x; scalar_type_g y; scalar_type_g z;
-    ras_vec3<scalar_type_g>(scalar_type_g xp = 0, scalar_type_g yp = 0, scalar_type_g zp = 0) { x = xp; y = yp; z = zp;}
+    explicit ras_vec3<scalar_type_g>(scalar_type_g xp = 0, scalar_type_g yp = 0, scalar_type_g zp = 0) { x = xp; y = yp; z = zp;}
     ras_vec3<scalar_type_g>(const ras_vec3<scalar_type_g>& other) { x = other.x; y = other.y; z = other.z;}
     def_op1_v3(ras_vec3<scalar_type_g>, *); def_op1_v3(ras_vec3<scalar_type_g>, /);
     def_op2_v3(ras_vec3<scalar_type_g>, +); def_op2_v3(ras_vec3<scalar_type_g>, -);
@@ -46,7 +46,7 @@ struct ras_vec3 {
 template<typename scalar_type_g>
 struct ras_vec2 {
     scalar_type_g x; scalar_type_g y; 
-    ras_vec2<scalar_type_g>(scalar_type_g xp = 0, scalar_type_g yp = 0) { x = xp; y = yp; }
+    explicit ras_vec2<scalar_type_g>(scalar_type_g xp = 0, scalar_type_g yp = 0) { x = xp; y = yp; }
     ras_vec2<scalar_type_g>(const ras_vec2<scalar_type_g>& other) { x = other.x; y = other.y; } 
     def_op1_v2(ras_vec2<scalar_type_g>, +); def_op1_v2(ras_vec2<scalar_type_g>, -);
     def_op1_v2(ras_vec2<scalar_type_g>, *); def_op1_v2(ras_vec2<scalar_type_g>, /);
@@ -58,7 +58,7 @@ struct ras_vec2 {
 template<typename scalar_type_g>
 struct ras_vec4 {
     scalar_type_g x; scalar_type_g y; scalar_type_g z; scalar_type_g w;
-    ras_vec4<scalar_type_g>(scalar_type_g xp = 0, scalar_type_g yp = 0, scalar_type_g zp = 0, scalar_type_g wp = 0) { x = xp; y = yp; z = zp; w = wp;}
+    explicit ras_vec4<scalar_type_g>(scalar_type_g xp = 0, scalar_type_g yp = 0, scalar_type_g zp = 0, scalar_type_g wp = 0) { x = xp; y = yp; z = zp; w = wp;}
     ras_vec4<scalar_type_g>(const ras_vec4<scalar_type_g>& other) { x = other.x; y = other.y; z = other.z; w = other.w;}
     def_op1_v4(ras_vec4<scalar_type_g>, +); def_op1_v4(ras_vec4<scalar_type_g>, -);
     def_op1_v4(ras_vec4<scalar_type_g>, *); def_op1_v4(ras_vec4<scalar_type_g>, /);
@@ -66,6 +66,62 @@ struct ras_vec4 {
     def_op2_v4(ras_vec4<scalar_type_g>, *); def_op2_v4(ras_vec4<scalar_type_g>, /);
     def_unary_op_v2(ras_vec4<scalar_type_g>);
 };
+
+#define scalar_op_v4(op)\
+template<typename scal_type_g>\
+inline ras_vec4<scal_type_g> operator op(const scal_type_g scalar, const ras_vec4<scal_type_g>& v) {\
+    return ras_vec4<scal_type_g>(scalar op v.x, scalar op v.y, scalar op v.z, scalar op v.w);\
+}
+
+#define scalar_op2_v4(op)\
+template<typename scal_type_g>\
+inline ras_vec4<scal_type_g> operator op(const ras_vec4<scal_type_g>& v, const scal_type_g scalar) {\
+    return ras_vec4<scal_type_g>(v.x op scalar, v.y op scalar, v.z op scalar, v.w op scalar);\
+}
+
+#define scalar_op_v3(op)\
+template<typename scal_type_g>\
+inline ras_vec3<scal_type_g> operator op (const scal_type_g scalar, const ras_vec3<scal_type_g>& v) {\
+    return ras_vec3<scal_type_g>(scalar op v.x, scalar op v.y, scalar op v.z);\
+}
+
+#define scalar_op2_v3(op)\
+template<typename scal_type_g>\
+inline ras_vec3<scal_type_g> operator op (const ras_vec3<scal_type_g>& v, const scal_type_g scalar) {\
+    return ras_vec3<scal_type_g>(v.x op scalar, v.y op scalar, v.z op scalar);\
+}
+
+#define scalar_op_v2(op)\
+template<typename scal_type_g>\
+inline ras_vec2<scal_type_g> operator op (const scal_type_g scalar, const ras_vec2<scal_type_g>& v) {\
+    return ras_vec2<scal_type_g>(scalar op v.x, scalar op v.y);\
+}
+#define scalar_op2_v2(op)\
+template<typename scal_type_g>\
+inline ras_vec2<scal_type_g> operator op (const ras_vec2<scal_type_g>& v, const scal_type_g scalar) {\
+    return ras_vec2<scal_type_g>(v.x op scalar, v.y op scalar);\
+}
+
+scalar_op_v2(+)
+scalar_op_v2(-)
+scalar_op_v2(*)
+
+scalar_op_v3(+)
+scalar_op_v3(-)
+scalar_op_v3(*)
+
+scalar_op_v4(+)
+scalar_op_v4(-)
+scalar_op_v4(*)
+
+scalar_op2_v2(*)
+
+scalar_op2_v3(/)
+scalar_op2_v3(*)
+
+scalar_op2_v4(/)
+scalar_op2_v4(*)
+
 
 #ifdef RAS_MATH_IMPL
 #define tmpl_prefix 
@@ -289,11 +345,11 @@ template<typename scal_type_g>
 void ras_m4_perspective(ras_mat4<scal_type_g>* m, scal_type_g fov_y, scal_type_g aspect, scal_type_g near, scal_type_g far) {
     scal_type_g fmn = far - near;
     float cotn  = 1.0 / ras_tan(fov_y * 0.5);
-    m->values[0]    = (1.0 / aspect) * cotn;
+    m->values[0]    = aspect * cotn;
     m->values[5]    = cotn;
-    m->values[10]   = -(far+near)/fmn;
+    m->values[10]   = (far+near)/fmn;
     m->values[11]   = -2.0 * far * near / fmn;
-    m->values[14]   = 1;
+    m->values[14]   =  1;
     m->values[15]   =  0;
 }
 // -------- Define types -----
@@ -328,5 +384,17 @@ template<typename type>
 type ras_det2(const ras_vec2<type>& v1, const ras_vec2<type>& v2) {
     return v1.x * v2.y - v1.y * v2.x;
 }
+
+float ras_v3f_dot(const v3f& v0, const v3f& v1);
+float ras_v2f_dot(const v2f& v0, const v2f& v1);
+float ras_v4f_dot(const v4f& v0, const v4f& v1);
+float ras_v2f_norm(const v2f& v);
+float ras_v3f_norm(const v3f& v);
+float ras_v4f_norm(const v4f& v);
+v4f ras_v4f_project(const v4f& u, const v4f& v);
+v3f ras_v3f_project(const v3f& u, const v3f& v);
+v2f ras_v2f_project(const v2f& u, const v2f& v);
+v2f ras_to_v2f(const v4f&);
+
 
 #endif

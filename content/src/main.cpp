@@ -20,6 +20,7 @@ void ras_backend_resize(int new_size_x, int new_size_y) {
         texture.Destroy();
     texture._size.x = new_size_x; texture._size.y = new_size_y;
     texture._GPUGen(0, TexChannelInfo::NW_RGBA, TexType_Exp::TexType_Exp_rgba8);
+    Scene::currentScene->GetGameObject("cam_obj")->Get<Camera>()->ChangeOrtho(new_size_x, new_size_y);
 }
 
 void init() {
@@ -29,7 +30,6 @@ void init() {
     GameObject& quad = scene.AddObject("quad"); 
     Camera&     cam  = cam_obj.Add<Camera>();
     quad.Add<Sprite,Transform>();
-    cam.ChangeOrtho(512, 512);
     cam.Use();
     cam.clearColor = {1.,1.,0.};
     scene.Start();
