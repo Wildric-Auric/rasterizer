@@ -124,8 +124,7 @@ void  raster_draw_prim_triangle(const ras_framebuffer_t* const framebuffer, ras_
                     break;
                 }
                 case ras_triangle_draw_mode_wireframe: {
-                    static const float wireframe_width = 0.01; 
-                    if (bary.x > wireframe_width && bary.y > wireframe_width && bary.z > wireframe_width)
+                    if (bary.x > cmd->wireframe_width && bary.y > cmd->wireframe_width && bary.z > cmd->wireframe_width)
                         continue;
                     frag_col = v3ui8(0,255,0);
                     break;
@@ -186,7 +185,8 @@ void ras_mat4_identity(ras_mat4<scalar_g>* m, scalar_g val) {
 
 void raster_update() {
     //test_draw_plane();
-    test_draw_quad();
+    test_subdiv_sphere();
+    //test_draw_quad();
     //test_draw_triangles();
     //test_draw_triangle();
 }

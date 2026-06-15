@@ -131,7 +131,24 @@ ras_mat4<type> operator op (const ras_mat4<type>& other) const { \
 template<typename scal_type_g>
 struct ras_mat4 {
     scal_type_g values[16];
-    ras_mat4() {} 
+    ras_mat4(scal_type_g val = 0) {
+        values[0]  = val;
+        values[1]  = 0;
+        values[2]  = 0;
+        values[3]  = 0;
+        values[4]  = 0;
+        values[5]  = val;
+        values[6]  = 0;
+        values[7]  = 0;
+        values[8]  = 0;
+        values[9]  = 0;
+        values[10] = val;
+        values[11] = 0;
+        values[12] = 0;
+        values[13] = 0;
+        values[14] = 0;
+        values[15] = val;
+    }
     inline scal_type_g* operator[](int i) {return values + 4 * i;}
     inline const scal_type_g*  operator[](int i) const {return values + 4 * i;}
     def_op_mat4(scal_type_g, +)

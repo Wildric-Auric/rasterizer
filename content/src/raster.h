@@ -36,6 +36,7 @@ enum ras_orientation_ {
 
 struct ras_triangle_draw_cmd_t {
     ras_triangle_draw_mode_ draw_mode;
+    float wireframe_width = 0.009;
 };
 
 struct ras_triangle_list_cmd_t {
