@@ -78,22 +78,25 @@ void raster_draw_prim_circle(const ras_framebuffer_t* const framebuffer, const r
 void  raster_draw_prim_triangle(const ras_framebuffer_t* const framebuffer, ras_prim_triangle_t* const tri, const ras_triangle_draw_cmd_t* cmd) {
     v2i32 bx;
     v2i32 by;
-    v2i32 tmp = tri->position[1]; 
-    bx.x = ras_min3(tri->position[0].x, tri->position[1].x, tri->position[2].x);
-    bx.y = ras_max3(tri->position[0].x, tri->position[1].x, tri->position[2].x);
-    by.x = ras_min3(tri->position[0].y, tri->position[1].y, tri->position[2].y);
-    by.y = ras_max3(tri->position[0].y, tri->position[1].y, tri->position[2].y);
+    v2i32 p0 = v2i32((tri->position[0].x + 1) * framebuffer->size.x / 2.0, (tri->position[0].y + 1) * framebuffer->size.y / 2.0);
+    v2i32 p1 = v2i32((tri->position[1].x + 1) * framebuffer->size.x / 2.0, (tri->position[1].y + 1) * framebuffer->size.y / 2.0);
+    v2i32 p2 = v2i32((tri->position[2].x + 1) * framebuffer->size.x / 2.0, (tri->position[2].y + 1) * framebuffer->size.y / 2.0);
+    v2i32 tmp = p1; 
+    bx.x = ras_min3(p0.x, p1.x, p2.x);
+    bx.y = ras_max3(p0.x, p1.x, p2.x);
+    by.x = ras_min3(p0.y, p1.y, p2.y);
+    by.y = ras_max3(p0.y, p1.y, p2.y);
     bx.x = ras_max(bx.x, 0); bx.y = ras_min(bx.y, framebuffer->size.x);
     by.x = ras_max(by.x, 0); by.y = ras_min(by.y, framebuffer->size.y);
     v2i32 v0; v2i32 v1; v2i32 v2;
-    bool is_cw = ras_det2(tri->position[1] - tri->position[0], tri->position[2] - tri->position[0]) < 0;
+    bool is_cw = ras_det2(p1 - p0, p2 - p0) < 0;
     if (is_cw) {
-        tri->position[1] = tri->position[2]; 
-        tri->position[2] = tmp;
+        p1 = p2; 
+        p2 = tmp;
     }
-    v0 = tri->position[1] - tri->position[0];
-    v1 = tri->position[2] - tri->position[1];
-    v2 = tri->position[0] - tri->position[2];
+    v0 = p1 - p0;
+    v1 = p2 - p1;
+    v2 = p0 - p2;
     v3f bary;
     v2i32 p;
     v3ui8 frag_col;
@@ -101,11 +104,11 @@ void  raster_draw_prim_triangle(const ras_framebuffer_t* const framebuffer, ras_
     int   d;
     for (p.y = by.x; p.y < by.y; ++p.y) {
         for (p.x = bx.x; p.x < bx.y; ++p.x) {
-            if ((dt1 = ras_det2(v0, p - tri->position[0])) < 0) continue;
-            if ((dt2 = ras_det2(v1, p - tri->position[1])) < 0) continue;
-            if ((dt3 = ras_det2(v2, p - tri->position[2])) < 0) continue;
-            bary.x = (float)dt2 / (float)ras_det2(v1, tri->position[0] - tri->position[1]);
-            bary.y = (float)dt3 / (float)ras_det2(v2, tri->position[1] - tri->position[2]);
+            if ((dt1 = ras_det2(v0, p - p0)) < 0) continue;
+            if ((dt2 = ras_det2(v1, p - p1)) < 0) continue;
+            if ((dt3 = ras_det2(v2, p - p2)) < 0) continue;
+            bary.x = (float)dt2 / (float)ras_det2(v1, p0 - p1);
+            bary.y = (float)dt3 / (float)ras_det2(v2, p1 - p2);
             bary.z = 1 - bary.x - bary.y;
             switch (cmd->draw_mode) {
                 case ras_triangle_draw_mode_uniform: {
@@ -135,33 +138,34 @@ void  raster_draw_prim_triangle(const ras_framebuffer_t* const framebuffer, ras_
 
 void ras_draw_triangle_list(const ras_framebuffer_t* const fmbuff, ras_triangle_list_cmd_t* cmd) {
     ras_prim_triangle_t tri;
-    v4i32 coord_3D[3];
-    int det;
+    v4f coord_3D[3];
+    float det;
     for (int i = 0; i < cmd->count; ++i) {
         tri = cmd->triangles[i]; 
+        coord_3D[0] = {(float)tri.position[0].x, (float)tri.position[0].y, (float)tri.ext_3D[0].x, (float)tri.ext_3D[0].y}; 
+        coord_3D[1] = {(float)tri.position[1].x, (float)tri.position[1].y, (float)tri.ext_3D[1].x,(float) tri.ext_3D[1].y}; 
+        coord_3D[2] = {(float)tri.position[2].x, (float)tri.position[2].y, (float)tri.ext_3D[2].x,(float)tri.ext_3D[2].y}; 
+
+        coord_3D[0] = cmd->transform * coord_3D[0];
+        coord_3D[1] = cmd->transform * coord_3D[1];
+        coord_3D[2] = cmd->transform * coord_3D[2];
+        
+        tri.position[0] = {(coord_3D[0].x / coord_3D[0].w), (coord_3D[0].y / coord_3D[0].w)};
+        tri.position[1] = {(coord_3D[1].x / coord_3D[1].w), (coord_3D[1].y / coord_3D[1].w)};
+        tri.position[2] = {(coord_3D[2].x / coord_3D[2].w), (coord_3D[2].y / coord_3D[2].w)};
+
         det = ras_det2(tri.position[1] - tri.position[0], tri.position[2] - tri.position[0]);
         switch (cmd->cull_mode) {
             case ras_orientation_cc: { if (det > 0) continue; break; }
             case ras_orientation_cw: { if (det < 0) continue; break; }
             default: break;
         }
-        coord_3D[0] = {tri.position[0].x, tri.position[0].y, tri.ext_3D[0].x, tri.ext_3D[0].y}; 
-        coord_3D[1] = {tri.position[1].x, tri.position[1].y, tri.ext_3D[1].x, tri.ext_3D[1].y}; 
-        coord_3D[2] = {tri.position[2].x, tri.position[2].y, tri.ext_3D[2].x, tri.ext_3D[2].y}; 
-
-        coord_3D[0] = cmd->transform * coord_3D[0];
-        coord_3D[1] = cmd->transform * coord_3D[1];
-        coord_3D[2] = cmd->transform * coord_3D[2];
-
-        tri.position[0] = {coord_3D[0].x, coord_3D[0].y};
-        tri.position[1] = {coord_3D[1].x, coord_3D[1].y};
-        tri.position[2] = {coord_3D[2].x, coord_3D[2].y};
 
         raster_draw_prim_triangle(fmbuff, &tri, &cmd->triangle_cmd);
     }
 }
 
-void ras_center_coord(const ras_framebuffer_t* fmb, int* out) {
+void ras_center_coord(const ras_framebuffer_t* fmb, float* out) {
     *out     = *out     + (fmb->size.x >> 1) ;
     *(out+1) = *(out+1) + (fmb->size.y >> 1) ;
 }
@@ -181,6 +185,8 @@ void ras_mat4_identity(ras_mat4<scalar_g>* m, scalar_g val) {
 #include "ras_test.h"
 
 void raster_update() {
-    test_draw_triangles();
+    //test_draw_plane();
+    test_draw_quad();
+    //test_draw_triangles();
     //test_draw_triangle();
 }

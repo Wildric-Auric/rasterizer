@@ -1,6 +1,23 @@
 #define RAS_MATH_IMPL
 #include "ras_math.h"
+#include <math.h>
 
-int ras_det2(const v2i32& v1, const v2i32& v2) {
-    return v1.x * v2.y - v1.y * v2.x;
+double ras_cos(double x) {
+    return cos(x);
+}
+
+double ras_sin(double x) {
+    return sin(x);
+}
+
+double ras_tan(double x) {
+    return tan(x);
+}
+
+double ras_sqrt(double x) {
+    return sqrt(x);
+}
+
+double ras_pow(double x, double p) {
+    return pow(x, p);
 }

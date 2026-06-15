@@ -8,6 +8,14 @@ typedef short          i16;
 typedef unsigned int   ui32;
 typedef int            i32;
 
+// -------- General functions --------
+
+double ras_cos(double);
+double ras_sin(double);
+double ras_tan(double);
+double ras_sqrt(double);
+double ras_pow(double, double);
+
 // -------- Vectors --------
 #define def_unary_op_v3(type) type operator-() const { return type(-x,-y,-z);}
 #define def_op1_v3(type, op) type operator op (const type& other) const {return type(x op other.x, y op other.y, z op other.z);} 
@@ -121,37 +129,48 @@ ras_mat4<type> operator op (const ras_mat4<type>& other) const { \
  
 
 template<typename scal_type_g>
-struct ras_mat4 {\
+struct ras_mat4 {
     scal_type_g values[16];
+    ras_mat4() {} 
     inline scal_type_g* operator[](int i) {return values + 4 * i;}
     inline const scal_type_g*  operator[](int i) const {return values + 4 * i;}
     def_op_mat4(scal_type_g, +)
     def_op_mat4(scal_type_g, -)
-    ras_mat4<scal_type_g> operator*(const ras_mat4<scal_type_g>& other) const {
-        ras_mat4<scal_type_g> res;
-        res[0][0] = (*this)[0][0] * other[0][0] + (*this)[0][1] * other[1][0] + (*this)[0][2] * other[2][0] + (*this)[0][3] * other[3][0];
-        res[0][1] = (*this)[0][0] * other[0][1] + (*this)[0][1] * other[1][1] + (*this)[0][2] * other[2][1] + (*this)[0][3] * other[3][1];
-        res[0][2] = (*this)[0][0] * other[0][2] + (*this)[0][1] * other[1][2] + (*this)[0][2] * other[2][2] + (*this)[0][3] * other[3][2];
-        res[0][3] = (*this)[0][0] * other[0][3] + (*this)[0][1] * other[1][3] + (*this)[0][2] * other[2][3] + (*this)[0][3] * other[3][3];
-
-        res[1][0] = (*this)[1][0] * other[0][0] + (*this)[1][1] * other[1][0] + (*this)[1][2] * other[2][0] + (*this)[1][3] * other[3][0];
-        res[1][1] = (*this)[1][0] * other[0][1] + (*this)[1][1] * other[1][1] + (*this)[1][2] * other[2][1] + (*this)[1][3] * other[3][1];
-        res[1][2] = (*this)[1][0] * other[0][2] + (*this)[1][1] * other[1][2] + (*this)[1][2] * other[2][2] + (*this)[1][3] * other[3][2];
-        res[1][3] = (*this)[1][0] * other[0][3] + (*this)[1][1] * other[1][3] + (*this)[1][2] * other[2][3] + (*this)[1][3] * other[3][3];
-
-        res[2][0] = (*this)[2][0] * other[0][0] + (*this)[2][1] * other[1][0] + (*this)[2][2] * other[2][0] + (*this)[2][3] * other[3][0];
-        res[2][1] = (*this)[2][0] * other[0][1] + (*this)[2][1] * other[1][1] + (*this)[2][2] * other[2][1] + (*this)[2][3] * other[3][1];
-        res[2][2] = (*this)[2][0] * other[0][2] + (*this)[2][1] * other[1][2] + (*this)[2][2] * other[2][2] + (*this)[2][3] * other[3][2];
-        res[2][3] = (*this)[2][0] * other[0][3] + (*this)[2][1] * other[1][3] + (*this)[2][2] * other[2][3] + (*this)[2][3] * other[3][3];
-
-        res[3][0] = (*this)[3][0] * other[0][0] + (*this)[3][1] * other[1][0] + (*this)[3][2] * other[2][0] + (*this)[3][3] * other[3][0];
-        res[3][1] = (*this)[3][0] * other[0][1] + (*this)[3][1] * other[1][1] + (*this)[3][2] * other[2][1] + (*this)[3][3] * other[3][1];
-        res[3][2] = (*this)[3][0] * other[0][2] + (*this)[3][1] * other[1][2] + (*this)[3][2] * other[2][2] + (*this)[3][3] * other[3][2];
-        res[3][3] = (*this)[3][0] * other[0][3] + (*this)[3][1] * other[1][3] + (*this)[3][2] * other[2][3] + (*this)[3][3] * other[3][3];
-        
-        return res;
+    template<typename scal_type_other_g> 
+    ras_mat4(const ras_mat4<scal_type_other_g> m) {
+        this->values[0]  = m.values[0]; this->values[1] = m.values[1]; this->values[2] = m.values[2];
+        this->values[3]  = m.values[3]; this->values[4] = m.values[4]; this->values[5] = m.values[5];
+        this->values[6]  = m.values[6]; this->values[7] = m.values[7]; this->values[8] = m.values[8];
+        this->values[9]  = m.values[9]; this->values[10] = m.values[10]; this->values[11] = m.values[11];
+        this->values[12] = m.values[12]; this->values[13] = m.values[13]; this->values[14] = m.values[14];
+        this->values[15] = m.values[15];
     }
 };
+
+template<typename scal_type_left_g, typename scal_type_right_g>
+ras_mat4<scal_type_left_g> operator*(const ras_mat4<scal_type_left_g>& left, const ras_mat4<scal_type_right_g>& other) {
+    ras_mat4<scal_type_left_g> res;
+    res[0][0] = left[0][0] * other[0][0] + left[0][1] * other[1][0] + left[0][2] * other[2][0] + left[0][3] * other[3][0];
+    res[0][1] = left[0][0] * other[0][1] + left[0][1] * other[1][1] + left[0][2] * other[2][1] + left[0][3] * other[3][1];
+    res[0][2] = left[0][0] * other[0][2] + left[0][1] * other[1][2] + left[0][2] * other[2][2] + left[0][3] * other[3][2];
+    res[0][3] = left[0][0] * other[0][3] + left[0][1] * other[1][3] + left[0][2] * other[2][3] + left[0][3] * other[3][3];
+
+    res[1][0] = left[1][0] * other[0][0] + left[1][1] * other[1][0] + left[1][2] * other[2][0] + left[1][3] * other[3][0];
+    res[1][1] = left[1][0] * other[0][1] + left[1][1] * other[1][1] + left[1][2] * other[2][1] + left[1][3] * other[3][1];
+    res[1][2] = left[1][0] * other[0][2] + left[1][1] * other[1][2] + left[1][2] * other[2][2] + left[1][3] * other[3][2];
+    res[1][3] = left[1][0] * other[0][3] + left[1][1] * other[1][3] + left[1][2] * other[2][3] + left[1][3] * other[3][3];
+
+    res[2][0] = left[2][0] * other[0][0] + left[2][1] * other[1][0] + left[2][2] * other[2][0] + left[2][3] * other[3][0];
+    res[2][1] = left[2][0] * other[0][1] + left[2][1] * other[1][1] + left[2][2] * other[2][1] + left[2][3] * other[3][1];
+    res[2][2] = left[2][0] * other[0][2] + left[2][1] * other[1][2] + left[2][2] * other[2][2] + left[2][3] * other[3][2];
+    res[2][3] = left[2][0] * other[0][3] + left[2][1] * other[1][3] + left[2][2] * other[2][3] + left[2][3] * other[3][3];
+
+    res[3][0] = left[3][0] * other[0][0] + left[3][1] * other[1][0] + left[3][2] * other[2][0] + left[3][3] * other[3][0];
+    res[3][1] = left[3][0] * other[0][1] + left[3][1] * other[1][1] + left[3][2] * other[2][1] + left[3][3] * other[3][1];
+    res[3][2] = left[3][0] * other[0][2] + left[3][1] * other[1][2] + left[3][2] * other[2][2] + left[3][3] * other[3][2];
+    res[3][3] = left[3][0] * other[0][3] + left[3][1] * other[1][3] + left[3][2] * other[2][3] + left[3][3] * other[3][3];
+    return res;
+}
 
 tmpl_prefix template class ras_mat4<float>;
 tmpl_prefix template class ras_mat4<int>;
@@ -220,6 +239,46 @@ void ras_m4_scale(ras_mat4<scal_type_g>* m, const ras_vec3<scal_type_vec_g>& v) 
     m->values[5]  *= v.y;
     m->values[10] *= v.z;
 }
+
+template<typename scal_type_g>
+void ras_m4_set_rot_x(ras_mat4<scal_type_g>* m, double angle) {
+    double c = ras_cos(angle);
+    double s = ras_sin(angle);
+    m->values[0]  =  1;
+    m->values[5]  =  c;
+    m->values[6]  = -s;
+    m->values[9]  =  s;
+    m->values[10] =  c;
+}
+template<typename scal_type_g>
+void ras_m4_set_rot_y(ras_mat4<scal_type_g>* m, double angle) {
+    double c = ras_cos(angle);
+    double s = ras_sin(angle);
+    m->values[0]  =  c;
+    m->values[2]  =  s;
+    m->values[8]  = -s;
+    m->values[10] =  c;
+}
+template<typename scal_type_g>
+void ras_m4_set_rot_z(ras_mat4<scal_type_g>* m, double angle) {
+    double c = ras_cos(angle);
+    double s = ras_sin(angle);
+    m->values[0]  =  c;
+    m->values[1]  = -s;
+    m->values[4]  =  s;
+    m->values[5]  =  c;
+}
+template<typename scal_type_g>
+void ras_m4_perspective(ras_mat4<scal_type_g>* m, scal_type_g fov_y, scal_type_g aspect, scal_type_g near, scal_type_g far) {
+    scal_type_g fmn = far - near;
+    float cotn  = 1.0 / ras_tan(fov_y * 0.5);
+    m->values[0]    = (1.0 / aspect) * cotn;
+    m->values[5]    = cotn;
+    m->values[10]   = -(far+near)/fmn;
+    m->values[11]   = -2.0 * far * near / fmn;
+    m->values[14]   = 1;
+    m->values[15]   =  0;
+}
 // -------- Define types -----
 
 typedef ras_vec2<i8>    v2i8;
@@ -247,6 +306,10 @@ typedef ras_mat4<i32>   m4i32;
 #define ras_min3(a,b,c)    ras_min(ras_min((a),(b)),(c))
 #define ras_max3(a,b,c)    ras_max(ras_max((a),(b)),(c))
 
-int ras_det2(const v2i32&, const v2i32&);
+
+template<typename type>
+type ras_det2(const ras_vec2<type>& v1, const ras_vec2<type>& v2) {
+    return v1.x * v2.y - v1.y * v2.x;
+}
 
 #endif
