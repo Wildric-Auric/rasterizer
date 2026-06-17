@@ -8,5 +8,6 @@ void test_draw_plane();
 void test_draw_cube();
 void test_subdiv_sphere();
 void test_clipping();
+void test_draw_cube2();
 
 #endif

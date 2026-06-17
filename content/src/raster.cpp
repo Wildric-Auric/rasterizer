@@ -135,33 +135,109 @@ void  raster_draw_prim_triangle(const ras_framebuffer_t* const framebuffer, ras_
     }
 }
 
-static void clip_intersect_plane_2(ras_prim_triangle_t* tris, float* fp, int out_id, int id_0, int id_1) {
+static void clip_intersect_plane_2(ras_prim_triangle_t* tri, ras_prim_triangle_t* new_tri, float* fp, int out_id, int id_0, int id_1) {
     float t0 = fp[out_id] / (fp[out_id] - fp[id_0]);
     float t1 = fp[out_id] / (fp[out_id] - fp[id_1]);
-    v4f   p0 = (1.0f - t0) * tris->position[out_id] + t0 * tris->position[id_0];
-    v4f   p1 = (1.0f - t1) * tris->position[out_id] + t0 * tris->position[id_1];
+    v4f   p0 = (1.0f - t0) * tri->position[out_id] + t0 * tri->position[id_0];
+    v4f   p1 = (1.0f - t1) * tri->position[out_id] + t1 * tri->position[id_1];
 
-    (tris+1)->position[0] = tris->position[id_0];
-    (tris+1)->position[1] = p0;
-    (tris+1)->position[2] = tris->position[id_1];
+    (new_tri)->position[0] = tri->position[id_0];
+    (new_tri)->position[1] = p0;
+    (new_tri)->position[2] = tri->position[id_1];
+    (new_tri)->color       = tri->color;
 
-    (tris+2)->position[0] = tris->position[id_1];
-    (tris+2)->position[1] = p0;
-    (tris+2)->position[2] = p1;
-
-    *(tris)   = *(tris+1);
-    *(tris+1) = *(tris+2);
+    tri->position[0] = tri->position[id_1];
+    tri->position[1] = p0;
+    tri->position[2] = p1;
 }
 
-static void clip_intersect_plane_1(ras_prim_triangle_t* tris, float* fp, int out_id, int in_id) {
+static void clip_intersect_plane_1(ras_prim_triangle_t* tri, float* fp, int out_id, int in_id) {
     float t = fp[out_id] / (fp[out_id] - fp[in_id]);
-    tris->position[out_id] = (1.0f - t) * tris->position[out_id] + t * tris->position[in_id];
+    tri->position[out_id] = (1.0f - t) * tri->position[out_id] + t * tri->position[in_id];
+}
+
+static void clip_full(ras_prim_triangle_t* tris, int* lkup) {
+    static const v4f clip_eqs[]     = { 
+//                                        v4f(0.f, 1.f, 0.f, 1.f), v4f(0.f, -1.f, 0.f, 1.f),
+//                                        v4f(1.f, 0.f, 0.f, 1.f), v4f(-1.f, 0.f, 0.f, 1.f),
+                                          v4f(0.f, 0.f, 1.f, 1.f), v4f(0.f, 0.f, -1.f, 1.f),
+                                      };
+    static const int clip_eqs_count = sizeof(clip_eqs) /  sizeof(clip_eqs[0]);
+    ras_prim_triangle_t* tri;
+    float ev[3];
+    ui8   mask;
+    int x   = 0;
+    int inc = 1;
+    for (int i = 0; i < clip_eqs_count; ++i) {
+        while(1) {
+            x = -1;
+            for (int r = 0; r < 24; ++r) { if (lkup[r] == i+1) {x = r; break;} }
+            if (x == -1) {
+                for (int r = 0; r < 24; ++r) { if (lkup[r] == i+1) {lkup[r] = i+2;}}
+                break;
+            }
+            tri = tris + x; 
+            ev[0] = ras_v4f_dot(clip_eqs[i], tri->position[0]);
+            ev[1] = ras_v4f_dot(clip_eqs[i], tri->position[1]);
+            ev[2] = ras_v4f_dot(clip_eqs[i], tri->position[2]);
+            mask  = (ev[0] < 0.f ? 1 : 0) | (ev[1] < 0.f ? 1<<1 : 0) | (ev[2] < 0.f ? 1 << 2 : 0);
+            switch (mask) {
+                case 0b110: {
+                    clip_intersect_plane_1(tri, ev, 1, 0);
+                    clip_intersect_plane_1(tri, ev, 2, 0);
+                    lkup[x] = i+2;
+                    break;
+                }
+                case 0b101: {
+                    clip_intersect_plane_1(tri, ev, 0, 1);
+                    clip_intersect_plane_1(tri, ev, 2, 1);
+                    lkup[x] = i+2;
+                    break;
+                }
+                case 0b011: {
+                    clip_intersect_plane_1(tri, ev, 0, 2);
+                    clip_intersect_plane_1(tri, ev, 1, 2);
+                    lkup[x] = i+2;
+                    break;
+                }
+                case 0b001: {
+                    clip_intersect_plane_2(tri, tris+inc, ev, 0, 1, 2);
+                    lkup[x]   = i+2;
+                    lkup[inc] = i+2;
+                    inc++;
+                    break;
+                }
+                case 0b010: {
+                    clip_intersect_plane_2(tri, tris+inc,ev, 1, 0, 2);
+                    lkup[x]   = i+2;
+                    lkup[inc] = i+2;
+                    inc++;
+                    break;
+                }
+                case 0b100: {
+                    clip_intersect_plane_2(tri, tris+inc,ev, 2, 0, 1);
+                    lkup[x]   = i+2;
+                    lkup[inc] = i+2;
+                    inc++;
+                    break;
+                }
+                case 0: {
+                    lkup[x] = i+2;
+                    break;
+                }
+                case 0b111: {
+                    lkup[x] = 0; 
+                    break;
+                }
+            }
+        }
+    }
 }
 
 void ras_draw_triangle_list(const ras_framebuffer_t* const fmbuff, ras_triangle_list_cmd_t* cmd) {
-    ras_prim_triangle_t  tris[3];
+    ras_prim_triangle_t  tris    [24];
+    int                  tri_lkup[24] = {0};
     ras_prim_triangle_t* tri = tris;
-    int prim_count = 1;
     
     float det;
     for (int i = 0; i < cmd->count; ++i) {
@@ -170,76 +246,26 @@ void ras_draw_triangle_list(const ras_framebuffer_t* const fmbuff, ras_triangle_
         tri->position[1] = cmd->transform * tri->position[1];
         tri->position[2] = cmd->transform * tri->position[2];
         
-        //------complete clipping if w negative------
-        if (tri->position[0].w < 0) continue;
-        if (tri->position[1].w < 0) continue;
-        if (tri->position[2].w < 0) continue;
-        //----------clipping-------------------------
-        static const v4f clip_eqs[]     = { v4f(0.f, 1.f, 0.f, 1.f), v4f(0.f, -1.f, 0.f, 1.f) };
-        static const int clip_eqs_count = sizeof(clip_eqs) /  sizeof(clip_eqs[0]);
-        float ev[3];
-        ui8   mask;
-        bool  skip = 0;
-        bool  br   = 0;
-        for (int i = 0; i < clip_eqs_count; ++i) {
-            ev[0] = ras_v4f_dot(clip_eqs[i], tri->position[0]);
-            ev[1] = ras_v4f_dot(clip_eqs[i], tri->position[1]);
-            ev[2] = ras_v4f_dot(clip_eqs[i], tri->position[2]);
-            mask  = (ev[0] < 0.f ? 1 : 0) | (ev[1] < 0.f ? 1<<1 : 0) | (ev[2] < 0.f ? 1 << 2 : 0);
-            switch (mask) {
-                case 0b110: {
-                    clip_intersect_plane_1(tris, ev, 1, 0);
-                    clip_intersect_plane_1(tris, ev, 2, 0);
-                    break;
-                }
-                case 0b101: {
-                    clip_intersect_plane_1(tris, ev, 0, 1);
-                    clip_intersect_plane_1(tris, ev, 2, 1);
-                    break;
-                }
-                case 0b011: {
-                    clip_intersect_plane_1(tris, ev, 0, 2);
-                    clip_intersect_plane_1(tris, ev, 1, 2);
-                    break;
-                }
-                case 0b001: {
-                    clip_intersect_plane_2(tris, ev, 0, 1, 2);
-                    prim_count = 2;
-                    break;
-                }
-                case 0b010: {
-                    clip_intersect_plane_2(tris, ev, 1, 0, 2);
-                    prim_count = 2;
-                    break;
-                }
-                case 0b100: {
-                    clip_intersect_plane_2(tris, ev, 2, 0, 1);
-                    prim_count = 2;
-                    break;
-                }
-                case 0: {
-                    break;
-                }
-                case 0b111: {
-                    skip = 1;
-                    break;
-                }
-            }
-            if (br) break;
+        //----- backsface culling ------ 
+        det = ras_det2(ras_to_v2f((tri->position[1]/tri->position[1].w - tri->position[0]/tri->position[0].w)), 
+                       ras_to_v2f(tri->position[2]/tri->position[2].w - tri->position[0]/tri->position[0].w)); //todo:: avoid doing this twice in perspective div below 
+        switch (cmd->cull_mode) {
+            case ras_orientation_cc: { if (det > 0) continue; break; }
+            case ras_orientation_cw: { if (det < 0) continue; break; }
+            default: break;
         }
-        if (skip) continue;
+        //----------clipping-------------------------
+        for (int i = 0; i < 24; ++i) tri_lkup[i] = 0;
+        tris[0]     = *tri;
+        tri_lkup[0] = 1;
+        clip_full(tris, tri_lkup);
         //----------perspective division-------------
-        for (int i = 0; i < prim_count; ++i) {
+        tri = tris;
+        for (int i = 0; i < 24; ++i) {
+            if (tri_lkup[i] == 0) {tri++; continue;}
             tri->position[0]    = tri->position[0] / tri->position[0].w;
             tri->position[1]    = tri->position[1] / tri->position[1].w;
             tri->position[2]    = tri->position[2] / tri->position[2].w;
-        //----- culling ------
-            det = ras_det2(ras_to_v2f(tri->position[1] - tri->position[0]), ras_to_v2f(tri->position[2] - tri->position[0]));
-            switch (cmd->cull_mode) {
-                case ras_orientation_cc: { if (det > 0) continue; break; }
-                case ras_orientation_cw: { if (det < 0) continue; break; }
-                default: break;
-            }
         //----- draw triangle -----
             raster_draw_prim_triangle(fmbuff, tri, &cmd->triangle_cmd);
             tri++;
@@ -268,10 +294,11 @@ void ras_mat4_identity(ras_mat4<scalar_g>* m, scalar_g val) {
 #include "ras_test.h"
 
 void raster_update() {
-    test_draw_plane();
+    //test_draw_plane();
     //test_subdiv_sphere();
+    test_draw_cube2();
     //test_draw_cube();
-    test_clipping();
+    //test_clipping();
     //test_draw_triangles();
     //test_draw_triangle();
 }
