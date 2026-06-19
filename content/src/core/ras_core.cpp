@@ -1,4 +1,4 @@
-#include "raster.h"
+#include "ras_core.h"
 #include "ras_util.h"
 #include <stdlib.h>
 #include <math.h>
