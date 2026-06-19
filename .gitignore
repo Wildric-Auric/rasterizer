@@ -3,3 +3,4 @@ include/
 lib/
 b.sh
 *.clangd
+.vscode/
