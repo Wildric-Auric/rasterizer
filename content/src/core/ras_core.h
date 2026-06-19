@@ -71,6 +71,12 @@ struct ras_gfx_ctx_t {
     frag_prg_proc frag_prgs[256];
 };
 
+enum ras_keys_ {
+    ras_keys_arrow_down = 1,
+    ras_keys_arrow_up   = 2,
+    ras_keys_arrow_left = 3,
+    ras_keys_arrow_right= 4
+};
 
 // -------- Ctx methods --------
 ras_framebuffer_t* ras_get_main_framebuffer();
@@ -78,6 +84,7 @@ void               ras_init();
 void               ras_update();
 void               ras_destroy(); 
 void               ras_backend_get_mouse(int*, int*);
+bool               ras_backend_get_key_on_release(int);
 void               ras_backend_resize(int, int);
 // -------- Frame buffer methods --------
 void               ras_fill_framebuffer(const ras_framebuffer_t* const, const v3ui8&);

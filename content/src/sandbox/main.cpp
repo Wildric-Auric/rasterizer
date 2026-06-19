@@ -13,6 +13,28 @@ void ras_backend_get_mouse(int* x, int* y) {
     *y = v.y + (texture._size.y >> 1);
 }
 
+
+enum ras_keys_ {
+    ras_keys_arrow_down = 1,
+    ras_keys_arrow_up   = 2,
+    ras_keys_arrow_left = 3,
+    ras_keys_arrow_right= 4
+};
+
+bool ras_backend_get_key_on_release(int key) {
+    switch (key) {
+        case ras_keys_arrow_down:
+            return Inputs::GetInputOnKeyRelease(NWInputKey_Down);
+        case ras_keys_arrow_left:
+            return Inputs::GetInputOnKeyRelease(NWInputKey_Left);
+        case ras_keys_arrow_up:
+            return Inputs::GetInputOnKeyRelease(NWInputKey_Up);
+        case ras_keys_arrow_right:
+            return Inputs::GetInputOnKeyRelease(NWInputKey_Right);
+    }
+    return 0;
+}
+
 void ras_backend_resize(int new_size_x, int new_size_y) {
     if (texture._size.x == new_size_x && texture._size.y != new_size_y)
         return;
@@ -41,7 +63,6 @@ int s = 1;
 
 void render() {
     GameObject* obj = Scene::GetCurrent()->GetGameObject("quad");
-    ras_update();
     texture.SetFromCPU((ui8*)ras_get_raw_framebuffer(), TexChannelInfo::NW_RGBA, TexType_Exp::TexType_Exp_rgba16f);
     Sprite*     spr = obj->Get<Sprite>();
     ras_update();

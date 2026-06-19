@@ -527,3 +527,58 @@ void test_textured_plane() {
     ras_draw_triangle_list(fmbuff, &cmd); 
     ras_free(cmd.triangles);
 }
+
+void test_depth() {
+    ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
+    ras_triangle_list_cmd_t cmd{};
+    cmd.count     = 2;
+    cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
+
+    cmd.triangles[0].position[0] = v4f(-1,-1,0,1);
+    cmd.triangles[0].position[1] = v4f(1,-1,0,1);
+    cmd.triangles[0].position[2] = v4f(-1,1,0,1);
+
+    cmd.triangles[1].position[0] = v4f(-1,1,0,1);
+    cmd.triangles[1].position[1] = v4f(1,-1,0,1);
+    cmd.triangles[1].position[2] = v4f(1,1,0,1);
+
+    float coords[] = {
+        0.0,   0.0,
+        1.0,   0.0,
+        0.0,   1.0,
+
+        0.0,   1.0,
+        1.0,   0.0,
+        1.0,   1.0,
+    };
+    cmd.tris_data.stride_count = 2;
+    cmd.tris_data.data         = coords;
+    m4f   proj_m (1.0f), model_m(1.0f), view_m (1.0f);
+    m4f   rot_m  (1.0f); 
+    m4f   scale_m(1.0f);
+    m4f   tr_m   (1.0f);
+    static float x = 0;
+    x += 0.01;
+    ras_m4_set_rot_y(&rot_m, x);
+    ras_m4_scale(&scale_m, v3i32(5,5,5));
+    ras_m4_perspective(&proj_m, 70.0f * 3.1415f / 180.0f, (float)fmbuff->size.y / fmbuff->size.x, 1.0f, 124.0f);
+    ras_m4_translate(&tr_m, v3f(0,0));
+    ras_m4_translate(&view_m, v3f(0, 0, 17));
+
+    model_m = tr_m * scale_m * rot_m;
+    cmd.transform = proj_m * view_m * model_m;
+    cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_user_func;
+    cmd.cull_mode              = ras_orientation_none;
+    cmd.triangle_cmd.frag_prg  = 2;
+    ras_register_frag_program(texture_prog,2);
+    ras_fill_framebuffer(fmbuff, v3ui8(10,10,20));
+    ras_draw_triangle_list(fmbuff, &cmd); 
+
+    view_m = m4f(1.0);
+    ras_m4_translate(&view_m, v3f(5.0f,5.0f,27.0f));
+    model_m = tr_m * scale_m * rot_m;
+    cmd.transform = proj_m * view_m * model_m;
+    ras_draw_triangle_list(fmbuff, &cmd); 
+
+    ras_free(cmd.triangles);
+}

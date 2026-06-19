@@ -123,7 +123,7 @@ void  ras_draw_prim_triangle(const ras_triangle_draw_data_t* const arg) {
             bary.y /= frag_d.v_pos[1]->w;
             bary.z /= frag_d.v_pos[2]->w;
             bary   = bary / (bary.x + bary.y + bary.z);
-            //bary.z = 1.0 - bary.x - bary.z;
+            //--------- draw, given draw mode ------------
             switch (arg->cmd->draw_mode) {
                 case ras_triangle_draw_mode_uniform: {
                     v3ui8 frag_col = v3ui8(255.0 * (arg->tri->position->z) * 0.5);
