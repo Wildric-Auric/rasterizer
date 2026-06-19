@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
 
 ras_framebuffer_t ras_main_framebuffer;
 ras_gfx_ctx_t     gfx_ctx = {{0}};
@@ -77,6 +78,11 @@ void  ras_draw_prim_triangle(const ras_triangle_draw_data_t* const arg) {
     float* v0d = arg->tri_data.data + arg->tri_data.stride_count * 0;
     float* v1d = arg->tri_data.data + arg->tri_data.stride_count * 1;
     float* v2d = arg->tri_data.data + arg->tri_data.stride_count * 2;
+    ras_frag_data_t frag_d; 
+    frag_d.v_pos[0]     = &arg->tri->position[0];
+    frag_d.v_pos[1]     = &arg->tri->position[1];
+    frag_d.v_pos[2]     = &arg->tri->position[2];
+    const v4f* tmp_full = frag_d.v_pos[1];
     v2i32 p0 = v2i32((arg->tri->position[0].x + 1) * arg->framebuffer->size.x / 2.0, (arg->tri->position[0].y + 1) * arg->framebuffer->size.y / 2.0);
     v2i32 p1 = v2i32((arg->tri->position[1].x + 1) * arg->framebuffer->size.x / 2.0, (arg->tri->position[1].y + 1) * arg->framebuffer->size.y / 2.0);
     v2i32 p2 = v2i32((arg->tri->position[2].x + 1) * arg->framebuffer->size.x / 2.0, (arg->tri->position[2].y + 1) * arg->framebuffer->size.y / 2.0);
@@ -91,10 +97,9 @@ void  ras_draw_prim_triangle(const ras_triangle_draw_data_t* const arg) {
     v2i32 v0; v2i32 v1; v2i32 v2;
     bool is_cw = ras_det2(p1 - p0, p2 - p0) < 0;
     if (is_cw) {
-        p1 = p2; 
-        p2 = tmp;
-        v1d = v2d;
-        v2d = tmp_d;
+        p1 = p2; p2 = tmp;
+        v1d = v2d; v2d = tmp_d;
+        frag_d.v_pos[1] = frag_d.v_pos[2]; frag_d.v_pos[2] = tmp_full;
     }
     v0 = p1 - p0;
     v1 = p2 - p1;
@@ -108,9 +113,17 @@ void  ras_draw_prim_triangle(const ras_triangle_draw_data_t* const arg) {
             if ((dt1 = ras_det2(v0, p - p0)) < 0) continue;
             if ((dt2 = ras_det2(v1, p - p1)) < 0) continue;
             if ((dt3 = ras_det2(v2, p - p2)) < 0) continue;
+
+            //--------- calculate barycentric coords --------------- 
             bary.x = (float)dt2 / (float)ras_det2(v1, p0 - p1);
             bary.y = (float)dt3 / (float)ras_det2(v2, p1 - p2);
-            bary.z = 1 - bary.x - bary.y;
+            bary.z = (1.0f - bary.x - bary.y);
+            //--------- apply barycentric correction --------------- 
+            bary.x /= frag_d.v_pos[0]->w;
+            bary.y /= frag_d.v_pos[1]->w;
+            bary.z /= frag_d.v_pos[2]->w;
+            bary   = bary / (bary.x + bary.y + bary.z);
+            //bary.z = 1.0 - bary.x - bary.z;
             switch (arg->cmd->draw_mode) {
                 case ras_triangle_draw_mode_uniform: {
                     v3ui8 frag_col = v3ui8(255.0 * (arg->tri->position->z) * 0.5);
@@ -125,8 +138,11 @@ void  ras_draw_prim_triangle(const ras_triangle_draw_data_t* const arg) {
                 }
                 case ras_triangle_draw_mode_user_func: {
                     v3f color;
-                    float* vd[3] = {v0d, v1d, v2d};
-                    gfx_ctx.frag_prgs[arg->cmd->frag_prg](&bary, vd, &color);
+                    frag_d.bary = &bary;
+                    frag_d.v_data[0] = v0d;
+                    frag_d.v_data[1] = v1d;
+                    frag_d.v_data[2] = v2d;
+                    gfx_ctx.frag_prgs[arg->cmd->frag_prg](&frag_d, &color);
                     ras_set_pixel(arg->framebuffer, p, v3ui8(color.x, color.y, color.z));
                     break;
                 }
@@ -238,7 +254,7 @@ static void clip_intersect_plane_1(clip_data_1_t* arg) {
 
 static void clip_full(ras_prim_triangle_t* tris, int* lkup, ras_triangle_data_t* tris_data, const ras_triangle_list_cmd_t* const cmd) {
     static const v4f clip_eqs[]     = { 
-                                          v4f(1.f, 0.f, 0.f, 1.f), v4f(-1.f, 0.f, 0.f, 1.f),
+                                          //v4f(1.f, 0.f, 0.f, 1.f), v4f(-1.f, 0.f, 0.f, 1.f),
                                           //v4f(0.f, 1.f, 0.f, 1.f), v4f(0.f, -1.f, 0.f, 1.f),
                                           v4f(0.f, 0.f, 1.f, 1.f), v4f(0.f, 0.f, -1.f, 1.f),
                                       };
@@ -386,10 +402,13 @@ void ras_draw_triangle_list(const ras_framebuffer_t* const fmbuff, const ras_tri
             if (tri_lkup[t] == 0) {tri++; continue;}    
             tri->position[0].x    = tri->position[0].x / tri->position[0].w;
             tri->position[0].y    = tri->position[0].y / tri->position[0].w;
+            tri->position[0].z    = tri->position[0].z / tri->position[0].w;
             tri->position[1].x    = tri->position[1].x / tri->position[1].w;
             tri->position[1].y    = tri->position[1].y / tri->position[1].w;
+            tri->position[1].z    = tri->position[1].z / tri->position[1].w;
             tri->position[2].x    = tri->position[2].x / tri->position[2].w;
             tri->position[2].y    = tri->position[2].y / tri->position[2].w;
+            tri->position[2].z    = tri->position[2].z / tri->position[2].w;
         //----- draw triangle -----
             draw_data.framebuffer           = fmbuff; 
             draw_data.tri_data.data         = tris_data.data + 3 * tris_data.stride_count * t;

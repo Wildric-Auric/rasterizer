@@ -59,7 +59,13 @@ struct ras_triangle_draw_data_t {
     ras_triangle_data_t            tri_data;
 };
 
-typedef void (*frag_prg_proc)(const v3f* const bary, float* const v_data[3], v3f* const out_color);
+struct ras_frag_data_t {
+    const v3f*   bary;
+    const v4f*   v_pos[3];
+    const float* v_data[3];
+};
+
+typedef void (*frag_prg_proc)(const ras_frag_data_t* const data, v3f* const out_color);
 
 struct ras_gfx_ctx_t {
     frag_prg_proc frag_prgs[256];

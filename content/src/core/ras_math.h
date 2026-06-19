@@ -116,6 +116,7 @@ scalar_op_v4(-)
 scalar_op_v4(*)
 
 scalar_op2_v2(*)
+scalar_op2_v2(/)
 
 scalar_op2_v3(/)
 scalar_op2_v3(*)

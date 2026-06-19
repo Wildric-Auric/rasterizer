@@ -173,12 +173,11 @@ void test_subdiv_sphere() {
     rot_m   = rot_m2 * rot_m;
     model_m = tr_m * scale_m * rot_m;
     cmd.transform = proj_m * view_m * model_m;
-    cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_uniform;
+    cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_wireframe;
     cmd.cull_mode = ras_orientation_cw;
     cmd.triangle_cmd.wireframe_width = 0.05;
     ras_fill_framebuffer(fmbuff, v3ui8(25,25,25));
     ras_draw_triangle_list(fmbuff, &cmd); 
-    ras_free(cmd.triangles);
     ras_free(cmd.triangles);
 }
 
@@ -187,10 +186,14 @@ void test_draw_cube2() {
     ras_triangle_list_cmd_t cmd{};
     cmd.count     = 12 ;
     cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
+    cmd.tris_data.data         = ras_alloc_n(float, 12 * 9);
+    cmd.tris_data.stride_count = 3;
 
-#define def_tri(i, j, x, y, z,col) \
-    cmd.triangles[i].position[j]=v4f(x,y,z,1); \
-    //cmd.triangles[i].color      =col;
+#define def_tri(i, j, a, b, c,col) \
+    cmd.triangles[i].position[j]=v4f(a,b,c,1); \
+    *(cmd.tris_data.data + (i * 9 + 0 +3*j)) = col.x;\
+    *(cmd.tris_data.data + (i * 9 + 1 +3*j)) = col.y;\
+    *(cmd.tris_data.data + (i * 9 + 2 +3*j)) = col.z;\
 
     def_tri(0,0,-1,-1,-1,v3ui8(255,0,0));
     def_tri(0,1, 1,-1,-1,v3ui8(255,0,0));
@@ -270,10 +273,13 @@ void test_draw_cube2() {
     rot_m   = rot_m2 * rot_m;
     model_m = tr_m * scale_m * rot_m;
     cmd.transform = proj_m * view_m * model_m;
-    cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_uniform;
+    cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_user_func;
     cmd.cull_mode = ras_orientation_none;
+    ras_register_frag_program(interpolate_v3_prog, 1);
+    cmd.triangle_cmd.frag_prg = 1;
     ras_fill_framebuffer(fmbuff, v3ui8(25,25,25));
     ras_draw_triangle_list(fmbuff, &cmd); 
+    ras_free(cmd.tris_data.data);
     ras_free(cmd.triangles);
 }
 void test_draw_cube() {
@@ -509,7 +515,7 @@ void test_textured_plane() {
     ras_m4_scale(&scale_m, v3i32(10,10,1));
     ras_m4_perspective(&proj_m, 70.0f * 3.1415f / 180.0f, (float)fmbuff->size.y / fmbuff->size.x, 1.0f, 124.0f);
     ras_m4_translate(&tr_m, v3f(0,0));
-    ras_m4_translate(&view_m, v3f(0, 0, 30));
+    ras_m4_translate(&view_m, v3f(0, 0, 17));
 
     model_m = tr_m * scale_m * rot_m;
     cmd.transform = proj_m * view_m * model_m;

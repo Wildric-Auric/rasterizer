@@ -1,9 +1,10 @@
 #ifndef RAS_TEST_H
 #define RAS_TEST_H
 #include "ras_math.h"
+#include "ras_core.h"
 
-void texture_prog(const v3f* const bary, float* const v_data[3], v3f* const out_color);
-void interpolate_v3_prog(const v3f* const bary, float* const v_data[3], v3f* const out_color);
+void texture_prog(const ras_frag_data_t* const, v3f* const out_color);
+void interpolate_v3_prog(const ras_frag_data_t* const, v3f* const out_color);
 
 void test_draw_circle();
 void test_draw_triangle();
