@@ -1,3 +1,4 @@
+#include "ras_test.h"
 #include "raster.h"
 #include "ras_util.h"
 #include <stdlib.h>
@@ -73,7 +74,6 @@ void test_draw_triangles() {
     tri->position[0] = v4f(0,1.,0,1);
     tri->position[2] = v4f(1.,1.,0,1);
     tri->position[1] = v4f(0,1.,0,1);
-    //tri->color       = v3ui8(0,0,255);
 
     ras_fill_framebuffer(fmbuff, v3ui8(255,255,0));
     ras_draw_triangle_list(fmbuff, &cmd); 
@@ -418,29 +418,6 @@ void test_clipping() {
     ras_fill_framebuffer(fmbuff, v3ui8(25,25,25));
     ras_draw_triangle_list(fmbuff, &cmd); 
     ras_free(cmd.triangles);
-}
-
-void interpolate_v3_prog(const v3f* const bary, float* const v_data[3], v3f* const out_color) {
-    v3f x = v3f(v_data[0][0], v_data[0][1], v_data[0][2]);
-    v3f y = v3f(v_data[1][0], v_data[1][1], v_data[1][2]);
-    v3f z = v3f(v_data[2][0], v_data[2][1], v_data[2][2]);
-    *out_color = x * bary->x + y * bary->y + z * bary->z;
-}
-
-void texture_prog(const v3f* const bary, float* const v_data[3], v3f* const out_color) {
-    v2f x      = v2f(v_data[0][0], v_data[0][1]);
-    v2f y      = v2f(v_data[1][0], v_data[1][1]);
-    v2f z      = v2f(v_data[2][0], v_data[2][1]);
-    v2f c      = x * bary->x + y * bary->y + z * bary->z;
-    float r    = c.y * 255.; 
-    v2i32 n      = v2i32(c.x * 8.0, c.y * 8.0);
-    if ((n.x + n.y) % 2) {
-        *out_color = v3f(30,0, 20);
-    }
-    else {
-        *out_color = v3f(255,255,255);
-    }
-    //*out_color = v3f(c.x*c.y*255.0, c.x*c.y*255.0, c.x*c.y*255.0);
 }
 
 void test_draw_plane() {

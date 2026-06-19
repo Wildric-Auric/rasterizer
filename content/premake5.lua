@@ -17,8 +17,7 @@ project "Rasterizer"
     kind("ConsoleApp")
     includedirs {
         "../include/",
-        "src/**.h",
-        "src/**.cpp",
+        "src/**"
     }
     files {
         "src/**.cpp",
