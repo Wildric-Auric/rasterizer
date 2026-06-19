@@ -5,18 +5,18 @@
 void test_draw_circle() {
     static ui8 col = 0;
     ++col;
-    fill_framebuffer(get_main_framebuffer(), v3ui8(255,col,0));
+    ras_fill_framebuffer(ras_get_main_framebuffer(), v3ui8(255,col,0));
     ras_prim_circle_t c;
     c.radius     = 100;
     c.position.x = 0;
     c.position.y = 0;
     c.color.x = 255; c.color.y = 0; c.color.z = 0;
     c.partial = (col/255.0)*2.0*c.radius;
-    raster_draw_prim_circle(get_main_framebuffer(), &c);
+    ras_draw_prim_circle(ras_get_main_framebuffer(), &c);
 }
 
 void test_draw_triangle() {
-    ras_framebuffer_t* fmbuff = get_main_framebuffer();
+    ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
     ras_prim_triangle_t tri;
     v4f tr(0,0,0,0);
     tri.position[0] = v4f(-1.f,-1.f);
@@ -27,16 +27,22 @@ void test_draw_triangle() {
     tri.position[1] += tr;
     tri.position[2] += tr;
 
-    tri.color       = v3ui8(0,0,255);
-    fill_framebuffer(fmbuff, v3ui8(255,255,255));
-    ras_triangle_draw_cmd_t cmd;
+    //tri.color       = v3ui8(0,0,255);
+    ras_fill_framebuffer(fmbuff, v3ui8(255,255,255));
+    ras_triangle_draw_cmd_t cmd{};
+    ras_triangle_draw_data_t d;
     cmd.draw_mode = ras_triangle_draw_mode_uniform;
-    raster_draw_prim_triangle(fmbuff, &tri, &cmd);
+    d.tri         = &tri;
+    d.framebuffer = fmbuff;
+    d.cmd           = &cmd;
+    d.tri_data.data = 0;
+    d.tri_data.stride_count = 0;
+    ras_draw_prim_triangle(&d);
 }
 
 void test_draw_triangles() {
-    ras_framebuffer_t* fmbuff = get_main_framebuffer();
-    ras_triangle_list_cmd_t cmd;
+    ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
+    ras_triangle_list_cmd_t cmd{};
     cmd.cull_mode = ras_orientation_none;
     cmd.count     = 5;
     cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
@@ -46,7 +52,7 @@ void test_draw_triangles() {
         tri->position[0] = v4f(i,0,0,1) + v4f(0,0);
         tri->position[1] = v4f(i,0,0,1) + v4f(1.0,0,0);
         tri->position[2] = v4f(i,0,0,1) + v4f(0,1.0);
-        tri->color       = v3ui8(255,0,0);
+        //tri->color       = v3ui8(255,0,0);
     }
     v2i32 mouse;
     m4f   rot_m(1.0f); 
@@ -67,9 +73,9 @@ void test_draw_triangles() {
     tri->position[0] = v4f(0,1.,0,1);
     tri->position[2] = v4f(1.,1.,0,1);
     tri->position[1] = v4f(0,1.,0,1);
-    tri->color       = v3ui8(0,0,255);
+    //tri->color       = v3ui8(0,0,255);
 
-    fill_framebuffer(fmbuff, v3ui8(255,255,0));
+    ras_fill_framebuffer(fmbuff, v3ui8(255,255,0));
     ras_draw_triangle_list(fmbuff, &cmd); 
     ras_free(cmd.triangles);
 }
@@ -104,8 +110,8 @@ void set_face(ras_triangle_list_cmd_t& cmd, int& k, const m4f& model) {
 }
 
 void test_subdiv_sphere() {
-    ras_framebuffer_t* fmbuff = get_main_framebuffer();
-    ras_triangle_list_cmd_t cmd;
+    ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
+    ras_triangle_list_cmd_t cmd{};
     cmd.count     = 2*10*10*6;
     cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
     int k = 0;
@@ -167,24 +173,24 @@ void test_subdiv_sphere() {
     rot_m   = rot_m2 * rot_m;
     model_m = tr_m * scale_m * rot_m;
     cmd.transform = proj_m * view_m * model_m;
-    cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_wireframe;
+    cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_uniform;
     cmd.cull_mode = ras_orientation_cw;
     cmd.triangle_cmd.wireframe_width = 0.05;
-    fill_framebuffer(fmbuff, v3ui8(25,25,25));
+    ras_fill_framebuffer(fmbuff, v3ui8(25,25,25));
     ras_draw_triangle_list(fmbuff, &cmd); 
     ras_free(cmd.triangles);
     ras_free(cmd.triangles);
 }
 
 void test_draw_cube2() {
-    ras_framebuffer_t* fmbuff = get_main_framebuffer();
-    ras_triangle_list_cmd_t cmd;
+    ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
+    ras_triangle_list_cmd_t cmd{};
     cmd.count     = 12 ;
     cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
 
 #define def_tri(i, j, x, y, z,col) \
     cmd.triangles[i].position[j]=v4f(x,y,z,1); \
-    cmd.triangles[i].color      =col;
+    //cmd.triangles[i].color      =col;
 
     def_tri(0,0,-1,-1,-1,v3ui8(255,0,0));
     def_tri(0,1, 1,-1,-1,v3ui8(255,0,0));
@@ -266,13 +272,13 @@ void test_draw_cube2() {
     cmd.transform = proj_m * view_m * model_m;
     cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_uniform;
     cmd.cull_mode = ras_orientation_none;
-    fill_framebuffer(fmbuff, v3ui8(25,25,25));
+    ras_fill_framebuffer(fmbuff, v3ui8(25,25,25));
     ras_draw_triangle_list(fmbuff, &cmd); 
     ras_free(cmd.triangles);
 }
 void test_draw_cube() {
-    ras_framebuffer_t* fmbuff = get_main_framebuffer();
-    ras_triangle_list_cmd_t cmd;
+    ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
+    ras_triangle_list_cmd_t cmd{};
     cmd.count     = 12 ;
     cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
 
@@ -359,14 +365,14 @@ void test_draw_cube() {
     cmd.transform = proj_m * view_m * model_m;
     cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_wireframe;
     cmd.cull_mode = ras_orientation_cw;
-    fill_framebuffer(fmbuff, v3ui8(25,25,25));
+    ras_fill_framebuffer(fmbuff, v3ui8(25,25,25));
     ras_draw_triangle_list(fmbuff, &cmd); 
     ras_free(cmd.triangles);
 }
 
 void test_clipping() {
-    ras_framebuffer_t* fmbuff = get_main_framebuffer();
-    ras_triangle_list_cmd_t cmd;
+    ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
+    ras_triangle_list_cmd_t cmd{};
     cmd.count     = 1;
     cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
 
@@ -409,15 +415,91 @@ void test_clipping() {
     cmd.cull_mode = ras_orientation_none;
     cmd.triangle_cmd.wireframe_width = 0.01;
     cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_wireframe;
-    fill_framebuffer(fmbuff, v3ui8(25,25,25));
+    ras_fill_framebuffer(fmbuff, v3ui8(25,25,25));
     ras_draw_triangle_list(fmbuff, &cmd); 
     ras_free(cmd.triangles);
 }
 
+void interpolate_v3_prog(const v3f* const bary, float* const v_data[3], v3f* const out_color) {
+    v3f x = v3f(v_data[0][0], v_data[0][1], v_data[0][2]);
+    v3f y = v3f(v_data[1][0], v_data[1][1], v_data[1][2]);
+    v3f z = v3f(v_data[2][0], v_data[2][1], v_data[2][2]);
+    *out_color = x * bary->x + y * bary->y + z * bary->z;
+}
+
+void texture_prog(const v3f* const bary, float* const v_data[3], v3f* const out_color) {
+    v2f x      = v2f(v_data[0][0], v_data[0][1]);
+    v2f y      = v2f(v_data[1][0], v_data[1][1]);
+    v2f z      = v2f(v_data[2][0], v_data[2][1]);
+    v2f c      = x * bary->x + y * bary->y + z * bary->z;
+    float r    = c.y * 255.; 
+    v2i32 n      = v2i32(c.x * 8.0, c.y * 8.0);
+    if ((n.x + n.y) % 2) {
+        *out_color = v3f(30,0, 20);
+    }
+    else {
+        *out_color = v3f(255,255,255);
+    }
+    //*out_color = v3f(c.x*c.y*255.0, c.x*c.y*255.0, c.x*c.y*255.0);
+}
+
 void test_draw_plane() {
-    ras_framebuffer_t* fmbuff = get_main_framebuffer();
-    ras_triangle_list_cmd_t cmd;
-    cmd.cull_mode = ras_orientation_none;
+    ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
+    ras_triangle_list_cmd_t cmd{};
+    cmd.count     = 2;
+    cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
+
+    cmd.triangles[1].position[0] = v4f(-1,-1,0,1);
+    cmd.triangles[1].position[1] = v4f(1,-1,0,1);
+    cmd.triangles[1].position[2] = v4f(-1,1,0,1);
+
+    cmd.triangles[0].position[0] = v4f(-1,1,0,1);
+    cmd.triangles[0].position[1] = v4f(1,-1,0,1);
+    cmd.triangles[0].position[2] = v4f(1,1,0,1);
+
+    float colors[] = {
+        255.0, 0., 0.,
+        0.0,   255,0.,
+        0.0,   0., 255.,
+
+        0.0,   0., 255.,
+        0.0,   255,0.,
+        255.0, 0., 0.,
+    };
+    cmd.tris_data.stride_count = 3;
+    cmd.tris_data.data         = colors;
+    m4f   proj_m (1.0f); 
+    m4f   model_m(1.0f);
+    m4f   view_m (1.0f);
+    m4f   rot_m  (1.0f); 
+    m4f   scale_m(1.0f);
+    m4f   tr_m   (1.0f);
+
+    static float x = 0;
+    x += 0.02;
+    ras_m4_set_rot_x(&rot_m, 0);
+    ras_m4_scale(&scale_m, v3i32(10,10,1));
+    ras_m4_perspective(&proj_m, 70.0f * 3.1415f / 180.0f, (float)fmbuff->size.y / fmbuff->size.x, 1.0f, 124.0f);
+    
+    ras_m4_translate(&tr_m, v3f(0,x));
+
+    ras_m4_translate(&view_m, v3f(0, 0, 20));
+
+    model_m = tr_m * scale_m * rot_m;
+    cmd.transform = proj_m * view_m * model_m;
+    cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_user_func;
+    cmd.cull_mode              = ras_orientation_cw;
+    cmd.triangle_cmd.frag_prg  = 1;
+    ras_register_frag_program(interpolate_v3_prog,1);
+
+    ras_fill_framebuffer(fmbuff, v3ui8(10,10,20));
+    ras_draw_triangle_list(fmbuff, &cmd); 
+    ras_free(cmd.triangles);
+}
+
+void test_textured_plane() {
+    ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
+    ras_triangle_list_cmd_t cmd{};
     cmd.count     = 2;
     cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
 
@@ -425,43 +507,40 @@ void test_draw_plane() {
     cmd.triangles[0].position[1] = v4f(1,-1,0,1);
     cmd.triangles[0].position[2] = v4f(-1,1,0,1);
 
-    cmd.triangles[1].position[0] = v4f(1,1,0,1);
-    cmd.triangles[1].position[1] = v4f(-1,1,0,1);
-    cmd.triangles[1].position[2] = v4f(1,-1,0,1);
+    cmd.triangles[1].position[0] = v4f(-1,1,0,1);
+    cmd.triangles[1].position[1] = v4f(1,-1,0,1);
+    cmd.triangles[1].position[2] = v4f(1,1,0,1);
 
-    v2i32 mouse;
+    float coords[] = {
+        0.0,   0.0,
+        1.0,   0.0,
+        0.0,   1.0,
 
-    m4f   proj_m; 
-    m4f   model_m;
-    m4f   view_m;
-    
-    m4f   rot_m; 
-    m4f   scale_m;
-    m4f   tr_m;
-    ras_set_m4_diag(&cmd.transform, 1.0f);
-    ras_set_m4_diag(&rot_m, 1.0f);
-    ras_set_m4_diag(&scale_m, 1.0f);
-    ras_set_m4_diag(&tr_m, 1.0f);
-    ras_set_m4_diag(&proj_m, 1.0f);
-    ras_set_m4_diag(&view_m, 1.0f);
-    ras_set_m4_diag(&model_m, 1.0f);
-
+        0.0,   1.0,
+        1.0,   0.0,
+        1.0,   1.0,
+    };
+    cmd.tris_data.stride_count = 2;
+    cmd.tris_data.data         = coords;
+    m4f   proj_m (1.0f), model_m(1.0f), view_m (1.0f);
+    m4f   rot_m  (1.0f); 
+    m4f   scale_m(1.0f);
+    m4f   tr_m   (1.0f);
     static float x = 0;
     x += 0.01;
-
     ras_m4_set_rot_x(&rot_m, x);
     ras_m4_scale(&scale_m, v3i32(10,10,1));
     ras_m4_perspective(&proj_m, 70.0f * 3.1415f / 180.0f, (float)fmbuff->size.y / fmbuff->size.x, 1.0f, 124.0f);
-    
-    ras_m4_translate(&tr_m, v3f(0.0));
-
-    ras_m4_translate(&view_m, v3f(0, 0, 20));
+    ras_m4_translate(&tr_m, v3f(0,0));
+    ras_m4_translate(&view_m, v3f(0, 0, 30));
 
     model_m = tr_m * scale_m * rot_m;
     cmd.transform = proj_m * view_m * model_m;
-    cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_bary;
-
-    fill_framebuffer(fmbuff, v3ui8(255,255,0));
+    cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_user_func;
+    cmd.cull_mode              = ras_orientation_none;
+    cmd.triangle_cmd.frag_prg  = 2;
+    ras_register_frag_program(texture_prog,2);
+    ras_fill_framebuffer(fmbuff, v3ui8(10,10,20));
     ras_draw_triangle_list(fmbuff, &cmd); 
     ras_free(cmd.triangles);
 }

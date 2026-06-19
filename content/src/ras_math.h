@@ -36,6 +36,7 @@ struct ras_vec3 {
     scalar_type_g x; scalar_type_g y; scalar_type_g z;
     explicit ras_vec3<scalar_type_g>(scalar_type_g xp = 0, scalar_type_g yp = 0, scalar_type_g zp = 0) { x = xp; y = yp; z = zp;}
     ras_vec3<scalar_type_g>(const ras_vec3<scalar_type_g>& other) { x = other.x; y = other.y; z = other.z;}
+    def_op1_v3(ras_vec3<scalar_type_g>, +); def_op1_v3(ras_vec3<scalar_type_g>, -);
     def_op1_v3(ras_vec3<scalar_type_g>, *); def_op1_v3(ras_vec3<scalar_type_g>, /);
     def_op2_v3(ras_vec3<scalar_type_g>, +); def_op2_v3(ras_vec3<scalar_type_g>, -);
     def_op2_v3(ras_vec3<scalar_type_g>, *); def_op2_v3(ras_vec3<scalar_type_g>, /);
@@ -351,6 +352,17 @@ void ras_m4_perspective(ras_mat4<scal_type_g>* m, scal_type_g fov_y, scal_type_g
     m->values[11]   = -2.0 * far * near / fmn;
     m->values[14]   =  1;
     m->values[15]   =  0;
+}
+
+template<typename scalar_g>
+void ras_mat4_identity(ras_mat4<scalar_g>* m, scalar_g val) {
+    m->values[0]  = val;
+    m->values[1]  = 0; m->values[2] = 0; m->values[3] = 0; m->values[4] = 0;
+    m->values[5]  = val;
+    m->values[6]  = 0; m->values[7] = 0; m->values[8] = 0; m->values[9] = 0;
+    m->values[10] = val;
+    m->values[11] = 0; m->values[12] = 0; m->values[13] = 0; m->values[14] = 0;
+    m->values[15] = val;
 }
 // -------- Define types -----
 

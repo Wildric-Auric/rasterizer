@@ -2,10 +2,10 @@
 
 Texture texture;
 
-extern void raster_init();
-extern void raster_update();
-extern void raster_destroy(); 
-extern void* get_raw_framebuffer();
+extern void ras_init();
+extern void ras_update();
+extern void ras_destroy(); 
+extern void* ras_get_raw_framebuffer();
 
 void ras_backend_get_mouse(int* x, int* y) {
     fVec2 v = Inputs::GetMousePosition(); 
@@ -33,7 +33,7 @@ void init() {
     cam.Use();
     cam.clearColor = {1.,1.,0.};
     scene.Start();
-    raster_init();
+    ras_init();
 }
 
 int x;
@@ -41,13 +41,10 @@ int s = 1;
 
 void render() {
     GameObject* obj = Scene::GetCurrent()->GetGameObject("quad");
-    raster_update();
-    texture.SetFromCPU((ui8*)get_raw_framebuffer(), TexChannelInfo::NW_RGBA, TexType_Exp::TexType_Exp_rgba16f);
+    ras_update();
+    texture.SetFromCPU((ui8*)ras_get_raw_framebuffer(), TexChannelInfo::NW_RGBA, TexType_Exp::TexType_Exp_rgba16f);
     Sprite*     spr = obj->Get<Sprite>();
-    raster_update();
-    Vector3<ui8> c;
-    c.x = 255;
-    c.z = x;
+    ras_update();
     spr->SetTexture(&texture);
     (*Renderer::currentRenderer)(1);
 }
@@ -58,6 +55,6 @@ int main() {
     NWengineInit();
     NWengineLoop();
     NWengineShutdown();
-    raster_destroy();
+    ras_destroy();
     return 0;     
 }

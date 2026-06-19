@@ -9,5 +9,6 @@ void test_draw_cube();
 void test_subdiv_sphere();
 void test_clipping();
 void test_draw_cube2();
+void test_textured_plane();
 
 #endif
