@@ -3,8 +3,9 @@
 #include "ras_math.h"
 #include "ras_core.h"
 
-void texture_prog(const ras_frag_data_t* const, v3f* const out_color);
-void interpolate_v3_prog(const ras_frag_data_t* const, v3f* const out_color);
+void interpolate_v3_prog(const ras_frag_data_t* const, ras_frag_out_data_t*);
+void texture_prog(const ras_frag_data_t* const, ras_frag_out_data_t*);
+
 
 void test_draw_circle();
 void test_draw_triangle();

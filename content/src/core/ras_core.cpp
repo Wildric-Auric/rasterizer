@@ -17,6 +17,19 @@ void ras_fill_framebuffer(const ras_framebuffer_t* const framebuffer, const v3ui
     }
 }
 
+void ras_fill_framebuffer_alpha(const ras_framebuffer_t* const framebuffer, const v4ui8* color) {
+    for (int i = 0; i < framebuffer->size.x * framebuffer->size.y * 4; i+=4) {
+        framebuffer->buff[i+0] = color->x; 
+        framebuffer->buff[i+1] = color->y; 
+        framebuffer->buff[i+2] = color->z; 
+        framebuffer->buff[i+3] = color->w;
+    }
+}
+
+void ras_set_pixel_alpha(const ras_framebuffer_t* const framebuffer, const v2i32& coord, const v4ui8* color) {
+    memcpy(framebuffer->buff + coord.x * 4 + coord.y * (framebuffer->size.x * 4), color, 4);
+}
+
 void ras_set_pixel(const ras_framebuffer_t* const framebuffer, const v2i32& coord, const v3ui8& color) {
     framebuffer->buff[coord.x * 4 + 0 + coord.y * (framebuffer->size.x * 4)] = color.x;
     framebuffer->buff[coord.x * 4 + 1 + coord.y * (framebuffer->size.x * 4)] = color.y;
@@ -74,26 +87,30 @@ void ras_draw_prim_circle(const ras_framebuffer_t* const framebuffer, const ras_
 
 void  ras_draw_prim_triangle(const ras_triangle_draw_data_t* const arg) {
     v2i32 bx;
-    v2i32 by;
+    v2i32 by; 
+    v2i32 screen_size = arg->renderbuff->color_buffer->size;
     float* v0d = arg->tri_data.data + arg->tri_data.stride_count * 0;
     float* v1d = arg->tri_data.data + arg->tri_data.stride_count * 1;
     float* v2d = arg->tri_data.data + arg->tri_data.stride_count * 2;
-    ras_frag_data_t frag_d; 
+    bool            wrt = 0;
+    ras_frag_data_t         frag_d; 
+    ras_frag_out_data_t     out_d;
+    out_d.discard       = 0;
     frag_d.v_pos[0]     = &arg->tri->position[0];
     frag_d.v_pos[1]     = &arg->tri->position[1];
     frag_d.v_pos[2]     = &arg->tri->position[2];
     const v4f* tmp_full = frag_d.v_pos[1];
-    v2i32 p0 = v2i32((arg->tri->position[0].x + 1) * arg->framebuffer->size.x / 2.0, (arg->tri->position[0].y + 1) * arg->framebuffer->size.y / 2.0);
-    v2i32 p1 = v2i32((arg->tri->position[1].x + 1) * arg->framebuffer->size.x / 2.0, (arg->tri->position[1].y + 1) * arg->framebuffer->size.y / 2.0);
-    v2i32 p2 = v2i32((arg->tri->position[2].x + 1) * arg->framebuffer->size.x / 2.0, (arg->tri->position[2].y + 1) * arg->framebuffer->size.y / 2.0);
+    v2i32 p0 = v2i32((frag_d.v_pos[0]->x + 1) * screen_size.x / 2.0, (frag_d.v_pos[0]->y + 1) * screen_size.y / 2.0);
+    v2i32 p1 = v2i32((frag_d.v_pos[1]->x + 1) * screen_size.x / 2.0, (frag_d.v_pos[1]->y + 1) * screen_size.y / 2.0);
+    v2i32 p2 = v2i32((frag_d.v_pos[2]->x + 1) * screen_size.x / 2.0, (frag_d.v_pos[2]->y + 1) * screen_size.y / 2.0);
     v2i32 tmp    = p1; 
     float* tmp_d = v1d;
     bx.x = ras_min3(p0.x, p1.x, p2.x);
     bx.y = ras_max3(p0.x, p1.x, p2.x);
     by.x = ras_min3(p0.y, p1.y, p2.y);
     by.y = ras_max3(p0.y, p1.y, p2.y);
-    bx.x = ras_max(bx.x, 0); bx.y = ras_min(bx.y, arg->framebuffer->size.x);
-    by.x = ras_max(by.x, 0); by.y = ras_min(by.y, arg->framebuffer->size.y);
+    bx.x = ras_max(bx.x, 0); bx.y = ras_min(bx.y, screen_size.x);
+    by.x = ras_max(by.x, 0); by.y = ras_min(by.y, screen_size.y);
     v2i32 v0; v2i32 v1; v2i32 v2;
     bool is_cw = ras_det2(p1 - p0, p2 - p0) < 0;
     if (is_cw) {
@@ -113,7 +130,6 @@ void  ras_draw_prim_triangle(const ras_triangle_draw_data_t* const arg) {
             if ((dt1 = ras_det2(v0, p - p0)) < 0) continue;
             if ((dt2 = ras_det2(v1, p - p1)) < 0) continue;
             if ((dt3 = ras_det2(v2, p - p2)) < 0) continue;
-
             //--------- calculate barycentric coords --------------- 
             bary.x = (float)dt2 / (float)ras_det2(v1, p0 - p1);
             bary.y = (float)dt3 / (float)ras_det2(v2, p1 - p2);
@@ -123,36 +139,55 @@ void  ras_draw_prim_triangle(const ras_triangle_draw_data_t* const arg) {
             bary.y /= frag_d.v_pos[1]->w;
             bary.z /= frag_d.v_pos[2]->w;
             bary   = bary / (bary.x + bary.y + bary.z);
+            //---------- calculate frag coordinates ----------------
+            frag_d.f_pos = bary.x * (*frag_d.v_pos[0]) 
+                         + bary.y * (*frag_d.v_pos[1]) 
+                         + bary.z * (*frag_d.v_pos[2]);
+            //---------  depth testing --------------------
+            if (arg->cmd->enable_depth_test) {
+                float cmp_depth = 0.0;
+                ras_get_pixel(arg->renderbuff->depth_buffer, p, (v4ui8*)&cmp_depth); 
+                if (frag_d.f_pos.z > cmp_depth) { continue; }
+            }
             //--------- draw, given draw mode ------------
+            wrt           = 0;
+            out_d.discard = 0; 
             switch (arg->cmd->draw_mode) {
                 case ras_triangle_draw_mode_uniform: {
-                    v3ui8 frag_col = v3ui8(255.0 * (arg->tri->position->z) * 0.5);
-                    frag_col.y = frag_col.x;
-                    frag_col.z = frag_col.x;
-                    ras_set_pixel(arg->framebuffer, p, frag_col);
+                    out_d.color.x = 255.0 * (arg->tri->position->z) * 0.5;
+                    out_d.color.y = out_d.color.x;
+                    out_d.color.z = out_d.color.x;
+                    wrt = 1;
                     break;
                 }
                 case ras_triangle_draw_mode_bary: {
-                    ras_set_pixel(arg->framebuffer, p, v3ui8(255.0 * bary.x, 255.0 * bary.y, 255.0 * bary.z));
+                    out_d.color = v3f(255.0 * bary.x, 255.0 * bary.y, 255.0 * bary.z);
+                    wrt = 1;
                     break;
                 }
                 case ras_triangle_draw_mode_user_func: {
-                    v3f color;
                     frag_d.bary = &bary;
                     frag_d.v_data[0] = v0d;
                     frag_d.v_data[1] = v1d;
                     frag_d.v_data[2] = v2d;
-                    gfx_ctx.frag_prgs[arg->cmd->frag_prg](&frag_d, &color);
-                    ras_set_pixel(arg->framebuffer, p, v3ui8(color.x, color.y, color.z));
+                    gfx_ctx.frag_prgs[arg->cmd->frag_prg](&frag_d, &out_d);
+                    wrt              = 1;
                     break;
                 }
                 case ras_triangle_draw_mode_wireframe: {
-                    if (bary.x > arg->cmd->wireframe_width && bary.y > arg->cmd->wireframe_width && bary.z > arg->cmd->wireframe_width)
+                    if (bary.x > arg->cmd->wireframe_width && bary.y > arg->cmd->wireframe_width && bary.z > arg->cmd->wireframe_width) {
                         continue;
-                    ras_set_pixel(arg->framebuffer, p, v3ui8(0,255,0));
+                    }
+                    out_d.color = v3f(0,255,0);
+                    wrt = 1;
                     break;
                 }
             }
+            if (!wrt || out_d.discard)
+                continue;
+            ras_set_pixel(arg->renderbuff->color_buffer, p, v3ui8(out_d.color.x, out_d.color.y, out_d.color.z));
+            if (!arg->renderbuff->depth_buffer) continue;
+            ras_set_pixel_alpha(arg->renderbuff->depth_buffer, p, (v4ui8*)&frag_d.f_pos.z);
         }
     }
 }
@@ -364,7 +399,7 @@ static void clip_full(ras_prim_triangle_t* tris, int* lkup, ras_triangle_data_t*
         ras_free(clip_d1.tmp_stride);
 }
 
-void ras_draw_triangle_list(const ras_framebuffer_t* const fmbuff, const ras_triangle_list_cmd_t* const cmd) {
+void ras_draw_triangle_list(const ras_triangle_list_cmd_t* const cmd) {
     ras_prim_triangle_t         tris    [24];
     ras_triangle_data_t         tris_data{};
     int                         tri_lkup[24] = {0};
@@ -410,7 +445,7 @@ void ras_draw_triangle_list(const ras_framebuffer_t* const fmbuff, const ras_tri
             tri->position[2].y    = tri->position[2].y / tri->position[2].w;
             tri->position[2].z    = tri->position[2].z / tri->position[2].w;
         //----- draw triangle -----
-            draw_data.framebuffer           = fmbuff; 
+            draw_data.renderbuff            = cmd->renderbuff;
             draw_data.tri_data.data         = tris_data.data + 3 * tris_data.stride_count * t;
             draw_data.tri_data.stride_count = tris_data.stride_count;
             draw_data.cmd                   = &cmd->triangle_cmd;

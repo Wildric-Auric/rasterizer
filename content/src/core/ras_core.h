@@ -3,9 +3,20 @@
 
 #include "ras_math.h"
 
+enum ras_buffer_type_ {
+    ras_buffer_type_color = 1 << 1,
+    ras_buffer_type_depth = 1 << 2,
+};
+
 struct ras_framebuffer_t {
-   ui8*   buff;
-   v2i32  size;
+   ui8*             buff;
+   v2i32            size;
+   ras_buffer_type_ type;
+};
+
+struct ras_renderbuffer_t {
+    ras_framebuffer_t* color_buffer;
+    ras_framebuffer_t* depth_buffer;
 };
 
 struct ras_prim_circle_t {
@@ -35,7 +46,8 @@ enum ras_orientation_ {
 struct ras_triangle_draw_cmd_t {
     int frag_prg          = 0;
     ras_triangle_draw_mode_ draw_mode;
-    float wireframe_width = 0.009;
+    float wireframe_width   = 0.009;
+    bool  enable_depth_test = 0;
 };
 
 struct ras_triangle_data_t {
@@ -44,6 +56,7 @@ struct ras_triangle_data_t {
 };
 
 struct ras_triangle_list_cmd_t {
+    ras_renderbuffer_t*     renderbuff; 
     ras_orientation_        cull_mode; 
     ras_prim_triangle_t*    triangles;
     ras_triangle_data_t     tris_data;
@@ -53,19 +66,25 @@ struct ras_triangle_list_cmd_t {
 };
 
 struct ras_triangle_draw_data_t {
-    const ras_framebuffer_t*       framebuffer; 
+    ras_renderbuffer_t*            renderbuff; 
     const ras_prim_triangle_t*     tri;
     const ras_triangle_draw_cmd_t* cmd;
     ras_triangle_data_t            tri_data;
 };
 
 struct ras_frag_data_t {
+    v4f          f_pos;
     const v3f*   bary;
     const v4f*   v_pos[3];
     const float* v_data[3];
 };
 
-typedef void (*frag_prg_proc)(const ras_frag_data_t* const data, v3f* const out_color);
+struct ras_frag_out_data_t {
+    v3f  color;
+    bool discard;
+};
+
+typedef void (*frag_prg_proc)(const ras_frag_data_t* const data, ras_frag_out_data_t*);
 
 struct ras_gfx_ctx_t {
     frag_prg_proc frag_prgs[256];
@@ -88,9 +107,11 @@ bool               ras_backend_get_key_on_release(int);
 void               ras_backend_resize(int, int);
 // -------- Frame buffer methods --------
 void               ras_fill_framebuffer(const ras_framebuffer_t* const, const v3ui8&);
+void               ras_fill_framebuffer_alpha(const ras_framebuffer_t* const, const v4ui8*);
 void               ras_init_framebuffer(ras_framebuffer_t* out_framebuffer, const v2i32& size);
 void               ras_destroy_framebuffer(ras_framebuffer_t* out_framebuffer);
 void               ras_set_pixel(const ras_framebuffer_t* const framebuffer, const v2i32& coord, const v3ui8& color);
+void               ras_set_pixel_alpha(const ras_framebuffer_t* const framebuffer, const v2i32& coord, const v4ui8* color);
 void               ras_set_pixel_safe(const ras_framebuffer_t* const framebuffer, const v2i32& coord, const v3ui8& color);
 void               ras_get_pixel(const ras_framebuffer_t* const framebuffer, const v2i32& coord, v4ui8* out);
 void*              ras_get_raw_framebuffer();
@@ -98,6 +119,6 @@ void               ras_register_frag_program(frag_prg_proc,const int);
 //  ------- Raster methods ----------
 void               ras_draw_prim_circle(const ras_framebuffer_t* const, const ras_prim_circle_t* const);
 void               ras_draw_prim_triangle(const ras_triangle_draw_data_t* const);
-void               ras_draw_triangle_list(const ras_framebuffer_t* const, const ras_triangle_list_cmd_t* const);
+void               ras_draw_triangle_list(const ras_triangle_list_cmd_t* const);
 
 #endif

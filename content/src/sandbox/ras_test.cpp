@@ -2,6 +2,7 @@
 #include "ras_core.h"
 #include "ras_util.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 void test_draw_circle() {
     static ui8 col = 0;
@@ -32,9 +33,11 @@ void test_draw_triangle() {
     ras_fill_framebuffer(fmbuff, v3ui8(255,255,255));
     ras_triangle_draw_cmd_t cmd{};
     ras_triangle_draw_data_t d;
-    cmd.draw_mode = ras_triangle_draw_mode_uniform;
-    d.tri         = &tri;
-    d.framebuffer = fmbuff;
+    ras_renderbuffer_t rdr{};
+    rdr.color_buffer = fmbuff;
+    cmd.draw_mode   = ras_triangle_draw_mode_uniform;
+    d.tri           = &tri;
+    d.renderbuff    = &rdr;
     d.cmd           = &cmd;
     d.tri_data.data = 0;
     d.tri_data.stride_count = 0;
@@ -44,6 +47,9 @@ void test_draw_triangle() {
 void test_draw_triangles() {
     ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
     ras_triangle_list_cmd_t cmd{};
+    ras_renderbuffer_t rdr{};
+    rdr.color_buffer = fmbuff;
+    cmd.renderbuff   = &rdr;
     cmd.cull_mode = ras_orientation_none;
     cmd.count     = 5;
     cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
@@ -76,7 +82,7 @@ void test_draw_triangles() {
     tri->position[1] = v4f(0,1.,0,1);
 
     ras_fill_framebuffer(fmbuff, v3ui8(255,255,0));
-    ras_draw_triangle_list(fmbuff, &cmd); 
+    ras_draw_triangle_list(&cmd); 
     ras_free(cmd.triangles);
 }
 
@@ -112,6 +118,9 @@ void set_face(ras_triangle_list_cmd_t& cmd, int& k, const m4f& model) {
 void test_subdiv_sphere() {
     ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
     ras_triangle_list_cmd_t cmd{};
+    ras_renderbuffer_t rdr{};
+    rdr.color_buffer = fmbuff;
+    cmd.renderbuff   = &rdr;
     cmd.count     = 2*10*10*6;
     cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
     int k = 0;
@@ -177,13 +186,16 @@ void test_subdiv_sphere() {
     cmd.cull_mode = ras_orientation_cw;
     cmd.triangle_cmd.wireframe_width = 0.05;
     ras_fill_framebuffer(fmbuff, v3ui8(25,25,25));
-    ras_draw_triangle_list(fmbuff, &cmd); 
+    ras_draw_triangle_list(&cmd); 
     ras_free(cmd.triangles);
 }
 
 void test_draw_cube2() {
     ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
     ras_triangle_list_cmd_t cmd{};
+    ras_renderbuffer_t rdr{};
+    rdr.color_buffer = fmbuff;
+    cmd.renderbuff   = &rdr;
     cmd.count     = 12 ;
     cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
     cmd.tris_data.data         = ras_alloc_n(float, 12 * 9);
@@ -278,13 +290,16 @@ void test_draw_cube2() {
     ras_register_frag_program(interpolate_v3_prog, 1);
     cmd.triangle_cmd.frag_prg = 1;
     ras_fill_framebuffer(fmbuff, v3ui8(25,25,25));
-    ras_draw_triangle_list(fmbuff, &cmd); 
+    ras_draw_triangle_list(&cmd); 
     ras_free(cmd.tris_data.data);
     ras_free(cmd.triangles);
 }
 void test_draw_cube() {
     ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
     ras_triangle_list_cmd_t cmd{};
+    ras_renderbuffer_t rdr{};
+    rdr.color_buffer = fmbuff;
+    cmd.renderbuff   = &rdr;
     cmd.count     = 12 ;
     cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
 
@@ -372,13 +387,16 @@ void test_draw_cube() {
     cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_wireframe;
     cmd.cull_mode = ras_orientation_cw;
     ras_fill_framebuffer(fmbuff, v3ui8(25,25,25));
-    ras_draw_triangle_list(fmbuff, &cmd); 
+    ras_draw_triangle_list(&cmd); 
     ras_free(cmd.triangles);
 }
 
 void test_clipping() {
     ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
     ras_triangle_list_cmd_t cmd{};
+    ras_renderbuffer_t rdr{};
+    rdr.color_buffer = fmbuff;
+    cmd.renderbuff   = &rdr;
     cmd.count     = 1;
     cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
 
@@ -422,13 +440,16 @@ void test_clipping() {
     cmd.triangle_cmd.wireframe_width = 0.01;
     cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_wireframe;
     ras_fill_framebuffer(fmbuff, v3ui8(25,25,25));
-    ras_draw_triangle_list(fmbuff, &cmd); 
+    ras_draw_triangle_list(&cmd); 
     ras_free(cmd.triangles);
 }
 
 void test_draw_plane() {
     ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
     ras_triangle_list_cmd_t cmd{};
+    ras_renderbuffer_t rdr{};
+    rdr.color_buffer = fmbuff;
+    cmd.renderbuff   = &rdr;
     cmd.count     = 2;
     cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
 
@@ -476,13 +497,16 @@ void test_draw_plane() {
     ras_register_frag_program(interpolate_v3_prog,1);
 
     ras_fill_framebuffer(fmbuff, v3ui8(10,10,20));
-    ras_draw_triangle_list(fmbuff, &cmd); 
+    ras_draw_triangle_list(&cmd); 
     ras_free(cmd.triangles);
 }
 
 void test_textured_plane() {
     ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
     ras_triangle_list_cmd_t cmd{};
+    ras_renderbuffer_t rdr{};
+    rdr.color_buffer = fmbuff;
+    cmd.renderbuff   = &rdr;
     cmd.count     = 2;
     cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
 
@@ -524,15 +548,22 @@ void test_textured_plane() {
     cmd.triangle_cmd.frag_prg  = 2;
     ras_register_frag_program(texture_prog,2);
     ras_fill_framebuffer(fmbuff, v3ui8(10,10,20));
-    ras_draw_triangle_list(fmbuff, &cmd); 
+    ras_draw_triangle_list(&cmd); 
     ras_free(cmd.triangles);
 }
 
 void test_depth() {
     ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
+    ras_framebuffer_t depth_buff;
+    ras_init_framebuffer(&depth_buff, fmbuff->size);
+
     ras_triangle_list_cmd_t cmd{};
-    cmd.count     = 2;
-    cmd.triangles = ras_alloc_n(ras_prim_triangle_t, cmd.count);
+    ras_renderbuffer_t rdr{};
+    rdr.depth_buffer = &depth_buff;
+    rdr.color_buffer = fmbuff;
+    cmd.renderbuff   = &rdr;
+    cmd.count        = 2;
+    cmd.triangles    = ras_alloc_n(ras_prim_triangle_t, cmd.count);
 
     cmd.triangles[0].position[0] = v4f(-1,-1,0,1);
     cmd.triangles[0].position[1] = v4f(1,-1,0,1);
@@ -567,18 +598,22 @@ void test_depth() {
 
     model_m = tr_m * scale_m * rot_m;
     cmd.transform = proj_m * view_m * model_m;
-    cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_user_func;
-    cmd.cull_mode              = ras_orientation_none;
-    cmd.triangle_cmd.frag_prg  = 2;
+    cmd.triangle_cmd.draw_mode         = ras_triangle_draw_mode_user_func;
+    cmd.cull_mode                      = ras_orientation_none;
+    cmd.triangle_cmd.frag_prg          = 2;
+    cmd.triangle_cmd.enable_depth_test = 1;
     ras_register_frag_program(texture_prog,2);
     ras_fill_framebuffer(fmbuff, v3ui8(10,10,20));
-    ras_draw_triangle_list(fmbuff, &cmd); 
+    float depth = 10.0;
+    ras_fill_framebuffer_alpha(&depth_buff, (v4ui8*)&depth);
+    ras_draw_triangle_list(&cmd); 
 
     view_m = m4f(1.0);
     ras_m4_translate(&view_m, v3f(5.0f,5.0f,27.0f));
     model_m = tr_m * scale_m * rot_m;
     cmd.transform = proj_m * view_m * model_m;
-    ras_draw_triangle_list(fmbuff, &cmd); 
-
+    ras_draw_triangle_list(&cmd); 
+    
+    ras_destroy_framebuffer(&depth_buff);
     ras_free(cmd.triangles);
 }
