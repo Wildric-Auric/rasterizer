@@ -152,6 +152,10 @@ void  ras_draw_prim_triangle(const ras_triangle_draw_data_t* const arg) {
             //--------- draw, given draw mode ------------
             wrt           = 0;
             out_d.discard = 0; 
+            frag_d.bary = &bary;
+            frag_d.v_data[0] = v0d;
+            frag_d.v_data[1] = v1d;
+            frag_d.v_data[2] = v2d;
             switch (arg->cmd->draw_mode) {
                 case ras_triangle_draw_mode_uniform: {
                     out_d.color.x = 255.0 * (arg->tri->position->z) * 0.5;
@@ -166,10 +170,6 @@ void  ras_draw_prim_triangle(const ras_triangle_draw_data_t* const arg) {
                     break;
                 }
                 case ras_triangle_draw_mode_user_func: {
-                    frag_d.bary = &bary;
-                    frag_d.v_data[0] = v0d;
-                    frag_d.v_data[1] = v1d;
-                    frag_d.v_data[2] = v2d;
                     gfx_ctx.frag_prgs[arg->cmd->frag_prg](&frag_d, &out_d);
                     wrt              = 1;
                     break;
@@ -417,7 +417,7 @@ void ras_draw_triangle_list(const ras_triangle_list_cmd_t* const cmd) {
         tri->position[1] = cmd->transform * tri->position[1];
         tri->position[2] = cmd->transform * tri->position[2];
         
-        //----- backsface culling ------ 
+        //----- backface culling ------ 
         det = ras_det2(ras_to_v2f((tri->position[1]/tri->position[1].w - tri->position[0]/tri->position[0].w)), 
                        ras_to_v2f(tri->position[2]/tri->position[2].w - tri->position[0]/tri->position[0].w)); //todo:: avoid doing this twice in perspective div below 
         switch (cmd->cull_mode) {
