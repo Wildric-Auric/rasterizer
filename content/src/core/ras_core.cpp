@@ -1,9 +1,6 @@
 #include "ras_core.h"
 #include "ras_util.h"
-#include <stdlib.h>
-#include <math.h>
 #include <string.h>
-#include <stdio.h>
 
 ras_framebuffer_t ras_main_framebuffer;
 ras_gfx_ctx_t     gfx_ctx = {{0}};

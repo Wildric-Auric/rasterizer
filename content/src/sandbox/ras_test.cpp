@@ -2,8 +2,6 @@
 #include "ras_core.h"
 #include "ras_util.h"
 #include "ras_asset.h"
-#include <stdlib.h>
-#include <stdio.h>
 
 void test_draw_circle() {
     static ui8 col = 0;

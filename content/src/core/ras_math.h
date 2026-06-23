@@ -408,6 +408,8 @@ v4f ras_v4f_project(const v4f& u, const v4f& v);
 v3f ras_v3f_project(const v3f& u, const v3f& v);
 v2f ras_v2f_project(const v2f& u, const v2f& v);
 v2f ras_to_v2f(const v4f&);
+v3f ras_to_v3f(const v4f&);
+v3f ras_cross_v3f(const v3f& u, const v3f);
 
 
 #endif

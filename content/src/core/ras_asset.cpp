@@ -94,7 +94,7 @@ int ras_load_obj_model(const char* path, ras_obj_model_t* out_data) {
                 tri.y = atoi(wrd) - 1;
                 parse_word(f, wrd, &endl, &r);
                 tri.z = atoi(wrd) - 1;
-                ras_grow_realloc_n(faces, v3i32, face_cap, face_count+1); 
+                ras_grow_realloc_n(&faces, v3i32, &face_cap, face_count+1); 
                 faces[face_count] = tri;
                 tri.y = tri.z;
                 face_count++;
@@ -111,7 +111,7 @@ int ras_load_obj_model(const char* path, ras_obj_model_t* out_data) {
                     break;
                 }
                 tri.z = atoi(wrd) - 1;
-                ras_grow_realloc_n(faces, v3i32, face_cap, face_count+1);
+                ras_grow_realloc_n(&faces, v3i32, &face_cap, face_count+1);
                 faces[face_count] = tri;
                 tri.y = tri.z;
                 face_count++;
@@ -127,7 +127,7 @@ int ras_load_obj_model(const char* path, ras_obj_model_t* out_data) {
                 vertex.y = atof(wrd);
                 parse_word(f, wrd, &endl, &r);
                 vertex.z = atof(wrd); 
-                ras_grow_realloc_n(verts, v3f, vert_cap, vert_count);
+                ras_grow_realloc_n(&verts, v3f, &vert_cap, vert_count);
                 verts[cur_idx] = vertex;
                 state = model_parse_state_general;
                 break;

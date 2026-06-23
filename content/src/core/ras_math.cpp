@@ -61,3 +61,11 @@ v2f ras_v2f_project(const v2f& u, const v2f& v) {
 v2f ras_to_v2f(const v4f& f) {
     return v2f(f.x, f.y);
 }
+
+v3f ras_to_v3f(const v4f& v) {
+    return v3f(v.x, v.y, v.z);
+}
+
+v3f ras_cross_v3f(const v3f& u, const v3f v) {
+    return v3f(u.y * v.z - v.y * u.z, u.z * v.x - v.z * u.x, u.x * v.y - v.x * u.y);
+}
