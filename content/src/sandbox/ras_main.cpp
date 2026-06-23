@@ -16,11 +16,11 @@ void (*funcs[])(void) = {
     test_subdiv_sphere,
     test_draw_cube2,
     test_draw_cube,
-    test_clipping,
     test_draw_triangles,
     test_draw_triangle,
     test_depth,
-    test_model
+    test_model,
+    test_clipping
 };
 
 const int funcs_num = sizeof(funcs) / sizeof(funcs[0]);

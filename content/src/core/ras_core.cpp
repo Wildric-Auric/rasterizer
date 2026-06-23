@@ -331,8 +331,7 @@ static void clip_full(ras_prim_triangle_t* tris, int* lkup, ras_triangle_data_t*
             mask  = (ev[0] < 0.f ? 1 : 0) | (ev[1] < 0.f ? 1<<1 : 0) | (ev[2] < 0.f ? 1 << 2 : 0);
             switch (mask) {
                 case 0b110: {
-                    //ras_prim_triangle_t* tri, float* fp, int out_id, int in_id
-                    clip_d1.out_id = 1; clip_d1.in_id  = 2;
+                    clip_d1.out_id = 1; clip_d1.in_id  = 0;
                     clip_intersect_plane_1(&clip_d1);
                     clip_d1.out_id = 2; clip_d1.in_id = 0;
                     clip_intersect_plane_1(&clip_d1);
@@ -340,7 +339,7 @@ static void clip_full(ras_prim_triangle_t* tris, int* lkup, ras_triangle_data_t*
                     break;
                 }
                 case 0b101: {
-                    clip_d1.tri = tri; clip_d1.fp = ev; clip_d1.out_id = 0; clip_d1.in_id = 1;
+                    clip_d1.out_id = 0; clip_d1.in_id = 1;
                     clip_intersect_plane_1(&clip_d1);
                     clip_d1.out_id = 2; clip_d1.in_id = 1;
                     clip_intersect_plane_1(&clip_d1);
@@ -348,7 +347,7 @@ static void clip_full(ras_prim_triangle_t* tris, int* lkup, ras_triangle_data_t*
                     break;
                 }
                 case 0b011: {
-                    clip_d1.tri = tri; clip_d1.fp = ev; clip_d1.out_id = 0; clip_d1.in_id = 2;
+                    clip_d1.out_id = 0; clip_d1.in_id = 2;
                     clip_intersect_plane_1(&clip_d1);
                     clip_d1.out_id = 1; clip_d1.in_id = 2;
                     clip_intersect_plane_1(&clip_d1);
@@ -364,7 +363,6 @@ static void clip_full(ras_prim_triangle_t* tris, int* lkup, ras_triangle_data_t*
                     break;
                 }
                 case 0b010: {
-                    clip_d2.tri = tri; clip_d2.new_tri = tris+inc; clip_d2.fp = ev; 
                     clip_d2.out_id = 1; clip_d2.id_0 = 0; clip_d2.id_1 = 2;
                     clip_intersect_plane_2(&clip_d2);
                     lkup[x]   = i+2;
@@ -373,7 +371,6 @@ static void clip_full(ras_prim_triangle_t* tris, int* lkup, ras_triangle_data_t*
                     break;
                 }
                 case 0b100: {
-                    clip_d2.tri = tri; clip_d2.new_tri = tris+inc; clip_d2.fp = ev; 
                     clip_d2.out_id = 2; clip_d2.id_0 = 0; clip_d2.id_1 = 1;
                     clip_intersect_plane_2(&clip_d2);
                     lkup[x]   = i+2;
@@ -396,61 +393,70 @@ static void clip_full(ras_prim_triangle_t* tris, int* lkup, ras_triangle_data_t*
         ras_free(clip_d1.tmp_stride);
 }
 
+void ras_draw_list_process_triangle(const ras_triangle_list_cmd_t* const cmd, 
+                                    ras_prim_triangle_t* tris, 
+                                    int tri_lkup[24],
+                                    ras_triangle_draw_data_t& draw_data,
+                                    ras_triangle_data_t&      tris_data) {
+
+    ras_prim_triangle_t* tri = tris;
+    tri->position[0] = cmd->transform * tri->position[0];
+    tri->position[1] = cmd->transform * tri->position[1];
+    tri->position[2] = cmd->transform * tri->position[2];
+    
+    //----- backface culling ------ 
+    float det = ras_det2(ras_to_v2f((tri->position[1]/tri->position[1].w - tri->position[0]/tri->position[0].w)), 
+                   ras_to_v2f(tri->position[2]/tri->position[2].w - tri->position[0]/tri->position[0].w)); //todo:: avoid doing this twice in perspective div below 
+    switch (cmd->cull_mode) {
+        case ras_orientation_cc: { if (det > 0) return; }
+        case ras_orientation_cw: { if (det < 0) return; }
+        default: break;
+    }
+    //----------clipping-------------------------
+    for (int i = 0; i < 24; ++i) tri_lkup[i] = 0;
+    tris[0]     = *tri;
+    tri_lkup[0] = 1;
+    clip_full(tris, tri_lkup, &tris_data, cmd);
+    //----------perspective division-------------
+    tri = tris;
+    for (int t = 0; t < 24; ++t) {
+        if (tri_lkup[t] == 0) {tri++; continue;}
+        tri->position[0].x    = tri->position[0].x / tri->position[0].w;
+        tri->position[0].y    = tri->position[0].y / tri->position[0].w;
+        tri->position[0].z    = tri->position[0].z / tri->position[0].w;
+        tri->position[1].x    = tri->position[1].x / tri->position[1].w;
+        tri->position[1].y    = tri->position[1].y / tri->position[1].w;
+        tri->position[1].z    = tri->position[1].z / tri->position[1].w;
+        tri->position[2].x    = tri->position[2].x / tri->position[2].w;
+        tri->position[2].y    = tri->position[2].y / tri->position[2].w;
+        tri->position[2].z    = tri->position[2].z / tri->position[2].w;
+    //----- draw triangle -----
+        draw_data.renderbuff            = cmd->renderbuff;
+        draw_data.tri_data.data         = tris_data.data + 3 * tris_data.stride_count * t;
+        draw_data.tri_data.stride_count = tris_data.stride_count;
+        draw_data.cmd                   = &cmd->triangle_cmd;
+        draw_data.tri                   = tri;
+        ras_draw_prim_triangle(&draw_data);
+        tri++;
+    }
+}
+
 void ras_draw_triangle_list(const ras_triangle_list_cmd_t* const cmd) {
     ras_prim_triangle_t         tris    [24];
     ras_triangle_data_t         tris_data{};
     int                         tri_lkup[24] = {0};
-    ras_prim_triangle_t*        tri = tris;
     ras_triangle_draw_data_t    draw_data{0};
 
     tris_data.stride_count   = cmd->tris_data.stride_count;
     if (tris_data.stride_count)
         tris_data.data       = ras_alloc_n(float, 3 * tris_data.stride_count * 24);
-    
-    float det;
     for (int i = 0; i < cmd->count; ++i) {
-        *tri = cmd->triangles[i]; 
-        tri->position[0] = cmd->transform * tri->position[0];
-        tri->position[1] = cmd->transform * tri->position[1];
-        tri->position[2] = cmd->transform * tri->position[2];
-        
-        //----- backface culling ------ 
-        det = ras_det2(ras_to_v2f((tri->position[1]/tri->position[1].w - tri->position[0]/tri->position[0].w)), 
-                       ras_to_v2f(tri->position[2]/tri->position[2].w - tri->position[0]/tri->position[0].w)); //todo:: avoid doing this twice in perspective div below 
-        switch (cmd->cull_mode) {
-            case ras_orientation_cc: { if (det > 0) continue; break; }
-            case ras_orientation_cw: { if (det < 0) continue; break; }
-            default: break;
-        }
-        //----------clipping-------------------------
-        for (int i = 0; i < 24; ++i) tri_lkup[i] = 0;
-        tris[0]     = *tri;
-        tri_lkup[0] = 1;
-        ras_cp_strides(tris_data.data, cmd->tris_data.data, 0, i, cmd->tris_data.stride_count);
-        clip_full(tris, tri_lkup, &tris_data, cmd);
-        //----------perspective division-------------
-        tri = tris;
-        for (int t = 0; t < 24; ++t) {
-            if (tri_lkup[t] == 0) {tri++; continue;}    
-            tri->position[0].x    = tri->position[0].x / tri->position[0].w;
-            tri->position[0].y    = tri->position[0].y / tri->position[0].w;
-            tri->position[0].z    = tri->position[0].z / tri->position[0].w;
-            tri->position[1].x    = tri->position[1].x / tri->position[1].w;
-            tri->position[1].y    = tri->position[1].y / tri->position[1].w;
-            tri->position[1].z    = tri->position[1].z / tri->position[1].w;
-            tri->position[2].x    = tri->position[2].x / tri->position[2].w;
-            tri->position[2].y    = tri->position[2].y / tri->position[2].w;
-            tri->position[2].z    = tri->position[2].z / tri->position[2].w;
-        //----- draw triangle -----
-            draw_data.renderbuff            = cmd->renderbuff;
-            draw_data.tri_data.data         = tris_data.data + 3 * tris_data.stride_count * t;
-            draw_data.tri_data.stride_count = tris_data.stride_count;
-            draw_data.cmd                   = &cmd->triangle_cmd;
-            draw_data.tri                   = tri;
-            ras_draw_prim_triangle(&draw_data);
-            tri++;
-        }
-        tri = tris;
+        //ras_cp_strides(tris_data.data, cmd->tris_data.data, 0, stride_idx.x, cmd->tris_data.stride_count);
+        *tris = cmd->triangles[i]; 
+        ras_cp_one_stride(tris_data.data, cmd->tris_data.data, 0, 3*i, cmd->tris_data.stride_count);
+        ras_cp_one_stride(tris_data.data, cmd->tris_data.data, 1, 3*i+1, cmd->tris_data.stride_count);
+        ras_cp_one_stride(tris_data.data, cmd->tris_data.data, 2, 3*i+2, cmd->tris_data.stride_count);
+        ras_draw_list_process_triangle(cmd, tris, tri_lkup, draw_data, tris_data);
     }
     if (tris_data.stride_count)
         ras_free(tris_data.data);
@@ -459,4 +465,3 @@ void ras_draw_triangle_list(const ras_triangle_list_cmd_t* const cmd) {
 void ras_register_frag_program(frag_prg_proc proc,const int idx) {
     gfx_ctx.frag_prgs[idx] = proc;
 }
-
