@@ -620,7 +620,7 @@ void test_depth() {
 void test_model() {
     ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
     ras_framebuffer_t dbuff;
-    ras_triangle_list_cmd_t cmd{};
+    ras_triangle_list_indexed_cmd_t cmd{};
     ras_init_framebuffer(&dbuff, fmbuff->size); 
     ras_renderbuffer_t rdr;
     rdr.color_buffer = fmbuff;
@@ -641,20 +641,11 @@ void test_model() {
         scale = &mon_scale;
     }
 
-    if (!model.count) {
+    if (!model.idx_count) {
         if (m)
             ras_load_obj_model("../assets/suzanne/suzanne.obj", &model);
         else
             ras_load_obj_model("../assets/utah-teapot/teapot.obj", &model);
-        tris = ras_alloc_n(ras_prim_triangle_t, model.count);
-        for (int i = 0; i < model.count; ++i) {
-            for (int j = 0; j < 3; ++j) {
-                tris[i].position[j].x = model.triangles[i * 9 + 3*j + 0];   
-                tris[i].position[j].y = model.triangles[i * 9 + 3*j + 1];   
-                tris[i].position[j].z = model.triangles[i * 9 + 3*j + 2];   
-                tris[i].position[j].w = 1;
-            }
-        }
     }
     m4f   proj_m (1.0f), model_m(1.0f), view_m (1.0f);
     m4f   rot_m  (1.0f), scale_m(1.0f), tr_m   (1.0f);
@@ -667,20 +658,24 @@ void test_model() {
     ras_m4_translate(&view_m, *tr);
 
     model_m = tr_m * scale_m * rot_m;
-    cmd.transform = proj_m * view_m * model_m;
-    cmd.count     = model.count;
-    cmd.triangles = tris;
-    cmd.tris_data.data = 0; cmd.tris_data.stride_count = 0;
-    cmd.renderbuff = &rdr;
-    cmd.cull_mode                      = ras_orientation_cw;
-    cmd.triangle_cmd.draw_mode         = ras_triangle_draw_mode_uniform;
-    cmd.triangle_cmd.enable_depth_test = 1;
-    cmd.triangle_cmd.wireframe_width   = 0.03;
+    cmd.idx_count = model.idx_count;
+    cmd.vert_count = model.vert_count;
+    cmd.vertices   = model.vertices;
+    cmd.indices    = model.indices;
+    cmd.tri_cmd.transform = proj_m * view_m * model_m;
+    cmd.tri_cmd.count     = 0;
+    cmd.tri_cmd.triangles = 0;
+    cmd.tri_cmd.tris_data.data = 0; cmd.tri_cmd.tris_data.stride_count = 0;
+    cmd.tri_cmd.renderbuff = &rdr;
+    cmd.tri_cmd.cull_mode                      = ras_orientation_cw;
+    cmd.tri_cmd.triangle_cmd.draw_mode         = ras_triangle_draw_mode_uniform;
+    cmd.tri_cmd.triangle_cmd.enable_depth_test = 1;
+    cmd.tri_cmd.triangle_cmd.wireframe_width   = 0.03;
 
     float depth = 10.0;
     ras_fill_framebuffer(rdr.color_buffer, v3ui8(20,20,30));
     ras_fill_framebuffer_alpha(&dbuff, (v4ui8*)&depth);
-    ras_draw_triangle_list(&cmd);
+    ras_draw_triangle_list_indexed(&cmd);
     ras_destroy_framebuffer(&dbuff);
 }
 

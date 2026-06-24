@@ -51,15 +51,16 @@ int ras_load_obj_model(const char* path, ras_obj_model_t* out_data) {
     char   c;
     char wrd[64];
     bool endl;
-    int vert_count = 0;
-    int face_count = 0;
     int vert_cap = 1024;
-    int face_cap = 1024; 
+    int idx_cap  = 1024; 
     model_parse_state_ state = model_parse_state_general;
-    v3f vertex;
-    v3f*   verts = ras_alloc_n(v3f,      vert_cap);
-    v3i32* faces = ras_alloc_n(v3i32,    face_cap);
+    v4f vertex;
+    out_data->vertices = ras_alloc_n(v4f, vert_cap);
+    out_data->indices  = ras_alloc_n(ui32, idx_cap);
+    out_data->vert_count = 0;
+    out_data->idx_count  = 0;
     v3i32  tri;
+    vertex.w = 1.0;
     f = fopen(path, "r");
     if (!f) { printf("Error opening file at: %s", path); return 1;}
     while (r) {
@@ -77,7 +78,6 @@ int ras_load_obj_model(const char* path, ras_obj_model_t* out_data) {
                 }
                 if (!strcmp("v", wrd)) {
                     state = model_parse_state_vertex;
-                    vert_count++;
                     break; 
                 }
                 break;
@@ -94,10 +94,12 @@ int ras_load_obj_model(const char* path, ras_obj_model_t* out_data) {
                 tri.y = atoi(wrd) - 1;
                 parse_word(f, wrd, &endl, &r);
                 tri.z = atoi(wrd) - 1;
-                ras_grow_realloc_n(&faces, v3i32, &face_cap, face_count+1); 
-                faces[face_count] = tri;
+                ras_grow_realloc_n(&out_data->indices, ui32, &idx_cap, out_data->idx_count+3+1); 
+                out_data->indices[out_data->idx_count+0] = tri.x;
+                out_data->indices[out_data->idx_count+1] = tri.y;
+                out_data->indices[out_data->idx_count+2] = tri.z;
                 tri.y = tri.z;
-                face_count++;
+                out_data->idx_count += 3;
                 if (endl)
                     state = model_parse_state_general;    
                 else
@@ -111,44 +113,41 @@ int ras_load_obj_model(const char* path, ras_obj_model_t* out_data) {
                     break;
                 }
                 tri.z = atoi(wrd) - 1;
-                ras_grow_realloc_n(&faces, v3i32, &face_cap, face_count+1);
-                faces[face_count] = tri;
+                ras_grow_realloc_n(&out_data->indices, ui32, &idx_cap, out_data->idx_count+3+1);
+                out_data->indices[out_data->idx_count]   = tri.x;
+                out_data->indices[out_data->idx_count+1] = tri.y;
+                out_data->indices[out_data->idx_count+2] = tri.z;
                 tri.y = tri.z;
-                face_count++;
+                out_data->idx_count += 3;
                 if (endl)
                     state = model_parse_state_general;
                 break;
             }
             case model_parse_state_vertex: {
-                const int cur_idx = vert_count-1;
                 parse_word(f, wrd, &endl, &r);
                 vertex.x = atof(wrd);
                 parse_word(f, wrd, &endl, &r);
                 vertex.y = atof(wrd);
                 parse_word(f, wrd, &endl, &r);
                 vertex.z = atof(wrd); 
-                ras_grow_realloc_n(&verts, v3f, &vert_cap, vert_count);
-                verts[cur_idx] = vertex;
+                ras_grow_realloc_n(&out_data->vertices, v4f, &vert_cap, out_data->vert_count+1);
+                out_data->vertices[out_data->vert_count] = vertex;
                 state = model_parse_state_general;
+                out_data->vert_count++;
                 break;
             }
             default: break;
         }
     }
-    v3f* tris = ras_alloc_n(v3f, face_count * 3);
-    for (int i = 0; i < face_count; i += 1) {
-        tris[i*3 + 0] = verts[faces[i].x];
-        tris[i*3 + 1] = verts[faces[i].z];
-        tris[i*3 + 2] = verts[faces[i].y];
-    }
-    ras_free(verts);
-    ras_free(faces);
-    out_data->triangles = (float*)tris;
-    out_data->count     = face_count;
+    ras_realloc(out_data->indices, ui32, out_data->idx_count);
+    ras_realloc(out_data->vertices, v4f, out_data->vert_count);
+    fclose(f);
     return 0;
 }
 
-void ras_free_obj_model(void** data) {
-    if (!*data) return;
-    ras_free(*data);
+void ras_free_obj_model(ras_obj_model_t* const model) {
+    ras_free(model->vertices);
+    ras_free(model->indices);
+    model->vert_count = 0;
+    model->idx_count  = 0;
 }

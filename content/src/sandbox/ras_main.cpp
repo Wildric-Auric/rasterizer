@@ -19,8 +19,8 @@ void (*funcs[])(void) = {
     test_draw_triangles,
     test_draw_triangle,
     test_depth,
-    test_model,
     test_indexed,
+    test_model,
 };
 
 const int funcs_num = sizeof(funcs) / sizeof(funcs[0]);
