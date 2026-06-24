@@ -13,7 +13,7 @@ void ras_grow_realloc_f(void** ptr, int* old_cap, int new_cap, int element_size)
 }
 
 void ras_realloc_f(void** ptr, int new_size) {
-    *ptr = realloc(*ptr, new_size);jjj
+    *ptr = realloc(*ptr, new_size);
 }
 
 void ras_free_f(void** ptr) {
