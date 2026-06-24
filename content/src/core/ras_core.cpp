@@ -462,6 +462,31 @@ void ras_draw_triangle_list(const ras_triangle_list_cmd_t* const cmd) {
         ras_free(tris_data.data);
 }
 
+void ras_draw_triangle_list_indexed(const ras_triangle_list_indexed_cmd_t* const cmd) {
+    ui32 x,y,z;
+    ras_prim_triangle_t         tris    [24];
+    ras_triangle_data_t         tris_data{};
+    int                         tri_lkup[24] = {0};
+    ras_triangle_draw_data_t    draw_data{0};
+    tris_data.stride_count   = cmd->tri_cmd.tris_data.stride_count;
+    if (tris_data.stride_count)
+        tris_data.data       = ras_alloc_n(float, 3 * tris_data.stride_count * 24);
+    for (int i = 0; i < cmd->idx_count; i += 3) {
+        x = cmd->indices[i];
+        y = cmd->indices[i+1];
+        z = cmd->indices[i+2];
+        tris->position[0] = cmd->vertices[x]; 
+        tris->position[1] = cmd->vertices[y]; 
+        tris->position[2] = cmd->vertices[z];
+        ras_cp_one_stride(tris_data.data, cmd->tri_cmd.tris_data.data, 0, x, cmd->tri_cmd.tris_data.stride_count);
+        ras_cp_one_stride(tris_data.data, cmd->tri_cmd.tris_data.data, 1, y, cmd->tri_cmd.tris_data.stride_count);
+        ras_cp_one_stride(tris_data.data, cmd->tri_cmd.tris_data.data, 2, z, cmd->tri_cmd.tris_data.stride_count);
+        ras_draw_list_process_triangle(&cmd->tri_cmd, tris, tri_lkup, draw_data, tris_data);
+    }
+    if (tris_data.stride_count)
+        ras_free(tris_data.data);
+}
+
 void ras_register_frag_program(frag_prg_proc proc,const int idx) {
     gfx_ctx.frag_prgs[idx] = proc;
 }

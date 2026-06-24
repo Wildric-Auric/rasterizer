@@ -7,8 +7,9 @@
 #define ras_grow_realloc_n(ptr_out, type, cmp_cap_ptr, new_cap) \
     ras_grow_realloc_f((void**)ptr_out, cmp_cap_ptr, new_cap, sizeof(type));
 
-#endif
 
 void* ras_alloc_f(int size);
 void ras_grow_realloc_f(void** ptr, int* old_cap, int new_cap, int element_size);
 void ras_free_f(void** ptr);
+
+#endif

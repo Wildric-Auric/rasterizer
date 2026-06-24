@@ -1,18 +1,18 @@
 #include "ras_core.h"
 #include "ras_test.h"
 #include <stdio.h>
-#include "ras_asset.h"
+
 void ras_init() {
     ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
     ras_init_framebuffer(fmbuff, v2i32(1080,720));
     ras_backend_resize(fmbuff->size.x, fmbuff->size.y);
-//    load_obj_model("../assets/utah-teapot/teapot.obj");
 }
 
 void (*funcs[])(void) = {
     test_draw_circle,
     test_draw_plane,
     test_textured_plane,
+    test_clipping,
     test_subdiv_sphere,
     test_draw_cube2,
     test_draw_cube,
@@ -20,7 +20,7 @@ void (*funcs[])(void) = {
     test_draw_triangle,
     test_depth,
     test_model,
-    test_clipping
+    test_indexed,
 };
 
 const int funcs_num = sizeof(funcs) / sizeof(funcs[0]);

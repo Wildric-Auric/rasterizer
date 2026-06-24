@@ -683,3 +683,62 @@ void test_model() {
     ras_draw_triangle_list(&cmd);
     ras_destroy_framebuffer(&dbuff);
 }
+
+void test_indexed() {
+    ras_framebuffer_t* fmbuff = ras_get_main_framebuffer();
+    ras_triangle_list_indexed_cmd_t cmd{};
+    ras_renderbuffer_t rdr{};
+    rdr.color_buffer = fmbuff;
+    cmd.tri_cmd.renderbuff   = &rdr;
+    cmd.tri_cmd.count     = -1;
+    cmd.tri_cmd.triangles =  0;
+    cmd.vert_count = 4;
+    cmd.idx_count  = 6;
+    cmd.vertices   = ras_alloc_n(v4f,cmd.vert_count);
+    cmd.indices    = ras_alloc_n(ui32,cmd.idx_count);
+
+    cmd.vertices[0]              = v4f(-1,-1,0,1);
+    cmd.vertices[1]              = v4f(1,-1,0,1);
+    cmd.vertices[2]              = v4f(-1,1,0,1);
+    cmd.vertices[3]              = v4f(1,1,0,1);
+    cmd.indices[0] = 0;
+    cmd.indices[1] = 1;
+    cmd.indices[2] = 2;
+    cmd.indices[3] = 2;
+    cmd.indices[4] = 1;
+    cmd.indices[5] = 3;
+
+    float colors[] = {
+        20.0, 20.0, 20.0,
+        255,   255, 255.,
+        255,   255, 255.,
+        255,   255, 255.,
+    };
+    cmd.tri_cmd.tris_data.stride_count = 3;
+    cmd.tri_cmd.tris_data.data         = colors;
+    m4f   proj_m (1.0f); 
+    m4f   model_m(1.0f);
+    m4f   view_m (1.0f);
+    m4f   rot_m  (1.0f); 
+    m4f   scale_m(1.0f);
+    m4f   tr_m   (1.0f);
+
+    static float x = 0;
+    x += 0.02;
+    ras_m4_set_rot_x(&rot_m, x);
+    ras_m4_scale(&scale_m, v3i32(10,10,1));
+    ras_m4_perspective(&proj_m, 70.0f * 3.1415f / 180.0f, (float)fmbuff->size.y / fmbuff->size.x, 1.0f, 124.0f);
+    ras_m4_translate(&view_m, v3f(0, 0, 20));
+
+    model_m = tr_m * scale_m * rot_m;
+    cmd.tri_cmd.transform = proj_m * view_m * model_m;
+    cmd.tri_cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_user_func;
+    cmd.tri_cmd.cull_mode              = ras_orientation_none;
+    cmd.tri_cmd.triangle_cmd.frag_prg  = 1;
+    ras_register_frag_program(interpolate_v3_prog,1);
+
+    ras_fill_framebuffer(fmbuff, v3ui8(10,10,20));
+    ras_draw_triangle_list_indexed(&cmd); 
+    ras_free(cmd.vertices);
+    ras_free(cmd.indices);
+}

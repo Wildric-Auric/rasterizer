@@ -18,5 +18,6 @@ void test_draw_cube2();
 void test_textured_plane();
 void test_depth();
 void test_model();
+void test_indexed();
 
 #endif

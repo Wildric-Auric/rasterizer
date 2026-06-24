@@ -65,6 +65,14 @@ struct ras_triangle_list_cmd_t {
     ras_triangle_draw_cmd_t triangle_cmd;
 };
 
+struct ras_triangle_list_indexed_cmd_t {
+    ras_triangle_list_cmd_t tri_cmd;
+    ui32*                   indices;
+    v4f*                    vertices;
+    int                     idx_count;
+    int                     vert_count;
+};
+
 struct ras_triangle_draw_data_t {
     ras_renderbuffer_t*            renderbuff; 
     const ras_prim_triangle_t*     tri;
@@ -120,5 +128,6 @@ void               ras_register_frag_program(frag_prg_proc,const int);
 void               ras_draw_prim_circle(const ras_framebuffer_t* const, const ras_prim_circle_t* const);
 void               ras_draw_prim_triangle(const ras_triangle_draw_data_t* const);
 void               ras_draw_triangle_list(const ras_triangle_list_cmd_t* const);
+void               ras_draw_triangle_list_indexed(const ras_triangle_list_indexed_cmd_t* const);
 
 #endif
