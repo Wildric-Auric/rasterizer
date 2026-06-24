@@ -2,6 +2,7 @@
 #include "ras_core.h"
 #include "ras_util.h"
 #include "ras_asset.h"
+#include <stdio.h>
 
 void test_draw_circle() {
     static ui8 col = 0;
@@ -626,7 +627,7 @@ void test_model() {
     rdr.color_buffer = fmbuff;
     rdr.depth_buffer = &dbuff;
  
-    static ras_obj_model_t model = {0,0};
+    static ras_obj_model_t model = {0};
     static ras_prim_triangle_t* tris;
 
     bool m = 0;
@@ -640,12 +641,16 @@ void test_model() {
         tr    = &mon_tr;
         scale = &mon_scale;
     }
-
     if (!model.idx_count) {
         if (m)
             ras_load_obj_model("../assets/suzanne/suzanne.obj", &model);
         else
             ras_load_obj_model("../assets/utah-teapot/teapot.obj", &model);
+        printf("--------- Model Info ---------\n");
+        printf("Vertices : %d\n", model.vert_count);
+        printf("Indices  : %d\n", model.idx_count);
+        printf("Coords   : %d\n", model.tex_count);
+        printf("------------------------------\n");
     }
     m4f   proj_m (1.0f), model_m(1.0f), view_m (1.0f);
     m4f   rot_m  (1.0f), scale_m(1.0f), tr_m   (1.0f);
