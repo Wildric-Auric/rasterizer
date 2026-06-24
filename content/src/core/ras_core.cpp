@@ -1,6 +1,5 @@
 #include "ras_core.h"
 #include "ras_util.h"
-#include <string.h>
 
 ras_framebuffer_t ras_main_framebuffer;
 ras_gfx_ctx_t     gfx_ctx = {{0}};
@@ -24,7 +23,7 @@ void ras_fill_framebuffer_alpha(const ras_framebuffer_t* const framebuffer, cons
 }
 
 void ras_set_pixel_alpha(const ras_framebuffer_t* const framebuffer, const v2i32& coord, const v4ui8* color) {
-    memcpy(framebuffer->buff + coord.x * 4 + coord.y * (framebuffer->size.x * 4), color, 4);
+    ras_memcpy(framebuffer->buff + coord.x * 4 + coord.y * (framebuffer->size.x * 4), color, 4);
 }
 
 void ras_set_pixel(const ras_framebuffer_t* const framebuffer, const v2i32& coord, const v3ui8& color) {
@@ -217,10 +216,10 @@ struct clip_data_1_t {
 
 
 void ras_cp_strides(float* dst, float* src, int dst_idx, int src_idx, int stride_count) {
-    memcpy(dst + (stride_count * 3 * dst_idx), src + (stride_count * 3) * src_idx, stride_count * 3 * sizeof(float));
+    ras_memcpy(dst + (stride_count * 3 * dst_idx), src + (stride_count * 3) * src_idx, stride_count * 3 * sizeof(float));
 }
 void ras_cp_one_stride(float* dst, float* src, int dst_idx, int src_idx, int stride_count) {
-    memcpy(dst + (stride_count * dst_idx), src + stride_count * src_idx, stride_count * sizeof(float));
+    ras_memcpy(dst + (stride_count * dst_idx), src + stride_count * src_idx, stride_count * sizeof(float));
 }
 
 static void clip_intersect_plane_2(clip_data_2_t* arg) {
