@@ -50,7 +50,7 @@ struct ras_vec2 {
     scalar_type_g x; scalar_type_g y; 
     explicit ras_vec2<scalar_type_g>(scalar_type_g xp = 0, scalar_type_g yp = 0) { x = xp; y = yp; }
     ras_vec2<scalar_type_g>(const ras_vec2<scalar_type_g>& other) { x = other.x; y = other.y; } 
-    bool operator == (const ras_vec3<scalar_type_g>& other) { return x == other.x && y == other.y;}
+    bool operator == (const ras_vec2<scalar_type_g>& other) { return x == other.x && y == other.y;}
     def_op1_v2(ras_vec2<scalar_type_g>, +); def_op1_v2(ras_vec2<scalar_type_g>, -);
     def_op1_v2(ras_vec2<scalar_type_g>, *); def_op1_v2(ras_vec2<scalar_type_g>, /);
     def_op2_v2(ras_vec2<scalar_type_g>, +); def_op2_v2(ras_vec2<scalar_type_g>, -);
@@ -63,7 +63,7 @@ struct ras_vec4 {
     scalar_type_g x; scalar_type_g y; scalar_type_g z; scalar_type_g w;
     explicit ras_vec4<scalar_type_g>(scalar_type_g xp = 0, scalar_type_g yp = 0, scalar_type_g zp = 0, scalar_type_g wp = 0) { x = xp; y = yp; z = zp; w = wp;}
     ras_vec4<scalar_type_g>(const ras_vec4<scalar_type_g>& other) { x = other.x; y = other.y; z = other.z; w = other.w;}
-    bool operator == (const ras_vec3<scalar_type_g>& other) { return x == other.x && y == other.y && z == other.z && w == other.z;}
+    bool operator == (const ras_vec4<scalar_type_g>& other) { return x == other.x && y == other.y && z == other.z && w == other.w;}
     def_op1_v4(ras_vec4<scalar_type_g>, +); def_op1_v4(ras_vec4<scalar_type_g>, -);
     def_op1_v4(ras_vec4<scalar_type_g>, *); def_op1_v4(ras_vec4<scalar_type_g>, /);
     def_op2_v4(ras_vec4<scalar_type_g>, +); def_op2_v4(ras_vec4<scalar_type_g>, -);

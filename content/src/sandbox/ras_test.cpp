@@ -647,9 +647,10 @@ void test_model() {
         else
             ras_load_obj_model("../assets/utah-teapot/teapot.obj", &model);
         printf("--------- Model Info ---------\n");
-        printf("Vertices : %d\n", model.vert_count);
-        printf("Indices  : %d\n", model.idx_count);
-        printf("Coords   : %d\n", model.tex_count);
+        printf("Positions Count : %d\n", model.count.pos);
+        printf("Indices         : %d\n", model.idx_count);
+        printf("Coords Count    : %d\n", model.count.coord);
+        printf("Normal Count    : %d\n", model.count.normal);
         printf("------------------------------\n");
     }
     m4f   proj_m (1.0f), model_m(1.0f), view_m (1.0f);
@@ -663,17 +664,17 @@ void test_model() {
     ras_m4_translate(&view_m, *tr);
 
     model_m = tr_m * scale_m * rot_m;
-    cmd.idx_count = model.idx_count;
-    cmd.vert_count = model.vert_count;
-    cmd.vertices   = model.vertices;
-    cmd.indices    = model.indices;
+    cmd.idx_count  = model.idx_count;
+    cmd.vert_count = model.count.pos;
+    cmd.vertices   = model.data.pos;
+    cmd.indices    = model.indices.pos;
     cmd.tri_cmd.transform = proj_m * view_m * model_m;
     cmd.tri_cmd.count     = 0;
     cmd.tri_cmd.triangles = 0;
     cmd.tri_cmd.tris_data.data = 0; cmd.tri_cmd.tris_data.stride_count = 0;
     cmd.tri_cmd.renderbuff = &rdr;
     cmd.tri_cmd.cull_mode                      = ras_orientation_cw;
-    cmd.tri_cmd.triangle_cmd.draw_mode         = ras_triangle_draw_mode_uniform;
+    cmd.tri_cmd.triangle_cmd.draw_mode         = ras_triangle_draw_mode_wireframe;
     cmd.tri_cmd.triangle_cmd.enable_depth_test = 1;
     cmd.tri_cmd.triangle_cmd.wireframe_width   = 0.03;
 

@@ -3,10 +3,26 @@
 #include <ras_math.h>
 
 struct ras_obj_model_t {
-    v4f*    vertices;
-    ui32*   indices;
-    int     idx_count;
-    int     vert_count;
+    struct {
+    v4f*    pos;
+    v3f*    coords;    
+    v3f*    normals;    
+    } data;
+
+    struct { 
+        ui32*   pos;
+        ui32*   coord;
+        ui32*   normal;
+    } indices;
+
+
+    struct {
+        int pos;
+        int coord;
+        int normal;
+    } count;
+
+    int idx_count;
 };
 
 int  ras_load_obj_model(const char* path, ras_obj_model_t* model);

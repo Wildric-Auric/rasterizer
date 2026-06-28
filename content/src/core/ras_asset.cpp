@@ -11,6 +11,8 @@ enum model_parse_state_ {
     model_parse_state_face,
     model_parse_state_face_fan,
     model_parse_state_vertex,
+    model_parse_state_coords,
+    model_parse_state_normals
 };
 
 bool is_blank(char c) {
@@ -27,6 +29,17 @@ void skip_blanks(FILE* f) {
     if (x)
         fseek(f, -1, SEEK_CUR); 
 }
+
+struct ras_obj_face_t {
+    union {
+        ui32 data[3];
+        struct {
+            ui32 pos_idx;
+            ui32 coord_idx;
+            ui32 normal_idx;
+        };
+    };
+};
 
 int parse_word(FILE* f, char* out, bool* endl, int* r) {
     char c;
@@ -45,21 +58,65 @@ int parse_word(FILE* f, char* out, bool* endl, int* r) {
     return idx;
 }
 
+int parse_face_element(FILE* f, char* out, bool* endl, int* r, ras_obj_face_t* face) {
+    char c;
+    int idx = 0;
+    char* tmp = out;
+    int   cur = 0;
+    out[0] = 0;
+    *face = {0};
+    skip_blanks(f);
+    while (1) {
+        *r = fread(&c, 1, 1, f);
+        if (is_blank(c) || !*r) break;
+        if (c == '/') {
+            out[idx] = 0;
+            face->data[cur] = atoi(tmp);
+            tmp = out + idx + 1;
+            ++cur;
+        }
+        out[idx] = c;
+        ++idx;
+    }
+    out[idx] = 0;
+    face->data[cur] = atoi(tmp);
+    *endl = c == '\n';
+    if (!*endl) fseek(f, -1, SEEK_CUR);
+    return idx;
+}
+
 int ras_load_obj_model(const char* path, ras_obj_model_t* out_data) {
     FILE*  f;
     int  r = 1;
     char   c;
     char wrd[64];
     bool endl;
-    int vert_cap = 1024;
-    int idx_cap  = 1024; 
+    int vert_cap   = 1024;
+    int idx_cap    = 1024; 
+    int tex_cap    = 1024;
+    int normal_cap = 1024;
     model_parse_state_ state = model_parse_state_general;
     v4f vertex;
-    out_data->vertices = ras_alloc_n(v4f, vert_cap);
-    out_data->indices  = ras_alloc_n(ui32, idx_cap);
-    out_data->vert_count = 0;
-    out_data->idx_count  = 0;
-    v3i32  tri;
+    out_data->data.pos       = ras_alloc_n(v4f, vert_cap);
+    out_data->data.coords    = ras_alloc_n(v3f, tex_cap);
+    out_data->data.normals   = ras_alloc_n(v3f, normal_cap);
+    out_data->indices.pos    = ras_alloc_n(ui32, idx_cap);
+    out_data->indices.coord  = ras_alloc_n(ui32, idx_cap);
+    out_data->indices.normal = ras_alloc_n(ui32, idx_cap);
+    *out_data->data.pos     = v4f();
+    *out_data->data.coords  = v3f();
+    *out_data->data.normals = v3f();
+    out_data->count.pos    = 1;
+    out_data->count.coord  = 1;
+    out_data->count.normal = 1;
+    out_data->idx_count   = 0;
+    struct {
+        v3i32 pos;
+        v3i32 coord;
+        v3i32 normal;
+    } tri;
+    v3i32  crd;
+    v3i32  nrm;
     vertex.w = 1.0;
     f = fopen(path, "r");
     if (!f) { printf("Error opening file at: %s", path); return 1;}
@@ -73,32 +130,84 @@ int ras_load_obj_model(const char* path, ras_obj_model_t* out_data) {
                     state = model_parse_state_comment;
                 if (!strcmp("f", wrd)) {
                     state = model_parse_state_face;
-                    tri = v3i32(-1,-1,-1);
+                    tri.pos    = v3i32(0,0,0); tri.coord  = v3i32(0,0,0); tri.normal = v3i32(0,0,0);
                     break;
                 }
                 if (!strcmp("v", wrd)) {
                     state = model_parse_state_vertex;
                     break; 
                 }
+                if (!strcmp("vt", wrd)) {
+                    state = model_parse_state_coords;
+                    break;
+                }
+                if (!strcmp("vn", wrd)) {
+                    state = model_parse_state_normals;
+                    break;
+                }
                 break;
             }
             case model_parse_state_comment: {
                 parse_word(f, wrd, &endl, &r);
-                if (endl) state = model_parse_state_general;
+                if (endl)
+                    state = model_parse_state_general;
+                break;
+            }
+            case model_parse_state_coords: {
+                parse_word(f, wrd, &endl, &r);
+                int id  = out_data->count.coord;
+                ras_grow_realloc_n(&out_data->data.coords, v3f, &tex_cap, id + 1);
+                out_data->data.coords[id].x = atoi(wrd);
+                out_data->count.coord++;
+                if (endl) { state = model_parse_state_general; break; }
+                parse_word(f, wrd, &endl, &r);
+                if (!wrd[0]) { state = model_parse_state_general; break; }
+                out_data->data.coords[id].y = atoi(wrd);
+                if (endl) {state = model_parse_state_general; break;}
+                parse_word(f, wrd, &endl, &r);
+                out_data->data.coords[id].z = atoi(wrd);
+                state = model_parse_state_general;
+                break;
+            }
+            case model_parse_state_normals: {
+                parse_word(f, wrd, &endl, &r);
+                int id = out_data->count.normal;
+                ras_grow_realloc_n(&out_data->data.normals, v3f, &normal_cap, id + 1);
+                out_data->data.normals[id].x = atoi(wrd);
+                parse_word(f, wrd, &endl, &r);
+                out_data->data.normals[id].y = atoi(wrd);
+                parse_word(f, wrd, &endl, &r);
+                out_data->data.normals[id].z = atoi(wrd);
+                out_data->count.normal++;
+                if (!endl) {
+                    parse_word(f, wrd, &endl, &r);
+                    if (!endl) {
+                        printf("Error during obj parsing of %s\n Incorrect normals bloc", path);
+                    }
+                }
+                state = model_parse_state_general;
                 break;
             }
             case model_parse_state_face: {
-                parse_word(f, wrd, &endl, &r);
-                tri.x = atoi(wrd) - 1;
-                parse_word(f, wrd, &endl, &r);
-                tri.y = atoi(wrd) - 1;
-                parse_word(f, wrd, &endl, &r);
-                tri.z = atoi(wrd) - 1;
-                ras_grow_realloc_n(&out_data->indices, ui32, &idx_cap, out_data->idx_count+3+1); 
-                out_data->indices[out_data->idx_count+0] = tri.x;
-                out_data->indices[out_data->idx_count+1] = tri.y;
-                out_data->indices[out_data->idx_count+2] = tri.z;
-                tri.y = tri.z;
+                #define consume_elem(vert) tri.pos.vert = face.pos_idx; tri.coord.vert = face.coord_idx;\
+                tri.normal.vert = face.normal_idx; face = {};
+                ras_obj_face_t face;
+                parse_face_element(f, wrd, &endl, &r, &face);
+                consume_elem(x);
+                parse_face_element(f, wrd, &endl, &r, &face);
+                consume_elem(y);
+                parse_face_element(f, wrd, &endl, &r, &face);
+                consume_elem(z);
+                const int old_cap = idx_cap;
+                ras_grow_realloc_n(&out_data->indices.pos,    ui32, &idx_cap, out_data->idx_count+3+1); idx_cap = old_cap;
+                ras_grow_realloc_n(&out_data->indices.normal, ui32, &idx_cap, out_data->idx_count+3+1); idx_cap = old_cap;
+                ras_grow_realloc_n(&out_data->indices.coord,  ui32, &idx_cap, out_data->idx_count+3+1); 
+                ras_memcpy(out_data->indices.pos    + out_data->idx_count, &tri.pos.x,    sizeof(ui32) * 3);
+                ras_memcpy(out_data->indices.coord  + out_data->idx_count, &tri.coord.x,  sizeof(ui32) * 3);
+                ras_memcpy(out_data->indices.normal + out_data->idx_count, &tri.normal.x, sizeof(ui32) * 3);
+                tri.pos.y    = tri.pos.z;
+                tri.coord.y  = tri.coord.z;
+                tri.normal.y = tri.normal.z;
                 out_data->idx_count += 3;
                 if (endl)
                     state = model_parse_state_general;    
@@ -107,21 +216,28 @@ int ras_load_obj_model(const char* path, ras_obj_model_t* out_data) {
                 break;
             }
             case model_parse_state_face_fan: {
-                parse_word(f, wrd, &endl, &r);
+                ras_obj_face_t face;
+                parse_face_element(f, wrd, &endl, &r, &face);
                 if (!wrd[0]) {
                     state = model_parse_state_general;
                     break;
                 }
-                tri.z = atoi(wrd) - 1;
-                ras_grow_realloc_n(&out_data->indices, ui32, &idx_cap, out_data->idx_count+3+1);
-                out_data->indices[out_data->idx_count]   = tri.x;
-                out_data->indices[out_data->idx_count+1] = tri.y;
-                out_data->indices[out_data->idx_count+2] = tri.z;
-                tri.y = tri.z;
+                consume_elem(z);
+                const int old_cap = idx_cap;
+                ras_grow_realloc_n(&out_data->indices.pos, ui32, &idx_cap, out_data->idx_count+3+1);    idx_cap = old_cap;
+                ras_grow_realloc_n(&out_data->indices.normal, ui32, &idx_cap, out_data->idx_count+3+1); idx_cap = old_cap;
+                ras_grow_realloc_n(&out_data->indices.coord,  ui32, &idx_cap, out_data->idx_count+3+1); 
+                ras_memcpy(out_data->indices.pos    + out_data->idx_count, &tri.pos.x,    sizeof(ui32) * 3);
+                ras_memcpy(out_data->indices.coord  + out_data->idx_count, &tri.coord.x,  sizeof(ui32) * 3);
+                ras_memcpy(out_data->indices.normal + out_data->idx_count, &tri.normal.x, sizeof(ui32) * 3);
+                tri.pos.y    = tri.pos.z;
+                tri.coord.y  = tri.coord.z;
+                tri.normal.y = tri.normal.z;
                 out_data->idx_count += 3;
                 if (endl)
                     state = model_parse_state_general;
                 break;
+                #undef consume_elem
             }
             case model_parse_state_vertex: {
                 parse_word(f, wrd, &endl, &r);
@@ -130,24 +246,86 @@ int ras_load_obj_model(const char* path, ras_obj_model_t* out_data) {
                 vertex.y = atof(wrd);
                 parse_word(f, wrd, &endl, &r);
                 vertex.z = atof(wrd); 
-                ras_grow_realloc_n(&out_data->vertices, v4f, &vert_cap, out_data->vert_count+1);
-                out_data->vertices[out_data->vert_count] = vertex;
+                ras_grow_realloc_n(&out_data->data.pos, v4f, &vert_cap, out_data->count.pos+1);
+                out_data->data.pos[out_data->count.pos] = vertex;
                 state = model_parse_state_general;
-                out_data->vert_count++;
+                out_data->count.pos++;
                 break;
             }
             default: break;
         }
     }
-    ras_realloc(out_data->indices, ui32, out_data->idx_count);
-    ras_realloc(out_data->vertices, v4f, out_data->vert_count);
+    ras_realloc(out_data->indices.pos, ui32, out_data->idx_count);
+    ras_realloc(out_data->indices.coord, ui32, out_data->idx_count);
+    ras_realloc(out_data->indices.normal, ui32, out_data->idx_count);
+
+    ras_realloc(out_data->data.pos, v4f, out_data->count.pos);
+    ras_realloc(out_data->data.coords, v3f, out_data->count.coord);
+    ras_realloc(out_data->data.normals, v3f, out_data->count.normal);
     fclose(f);
     return 0;
 }
 
 void ras_free_obj_model(ras_obj_model_t* const model) {
-    ras_free(model->vertices);
-    ras_free(model->indices);
-    model->vert_count = 0;
-    model->idx_count  = 0;
+    ras_free(model->data.pos);
+    ras_free(model->data.coords);
+    ras_free(model->data.normals);
+    model->count = {};
 }
+
+struct ras_obj_key_t {
+    v4f position;
+    v3f coord;
+    v3f normal;
+};
+
+struct ras_obj_processed_t {
+    v4f*    positions;
+    float*  data;
+    ui32*   indices;
+    int     idx_count;
+    int     data_count; 
+};
+
+int find_obj_key(ras_obj_key_t* obj, ras_obj_key_t* key, int size) {
+    for (int i = 0; i < size; ++i) {
+        if (obj[i].coord == key->coord && obj[i].position == key->position && obj[i].normal == key->normal)
+            return i;
+    }
+    return -1;
+}
+
+int find_or_insert_obj_key(ras_obj_key_t* obj, int* cap, int* size, ras_obj_key_t* key) {
+    int idx = find_obj_key(obj, key, *size);
+    if (idx != -1) return idx;
+    ras_grow_realloc_n(&obj, ras_obj_key_t, cap, *size);
+    obj[*size] =  *key;
+    (*size)++; 
+    return *size - 1;
+}
+
+void ras_make_obj_tris_and_data(const ras_obj_model_t* const model, ras_obj_processed_t* out) {
+    out->idx_count  = {};
+    int lkup_cap    = 1024;
+    int lkup_size   = 0;
+    ras_obj_key_t* lkup = ras_alloc_n(ras_obj_key_t, lkup_cap);
+    out->indices = ras_alloc_n(ui32, model->idx_count);
+    ras_obj_key_t key;
+    for (int i = 0; i < model->idx_count; ++i) {
+        key.position = model->data.pos[i];
+        key.coord    = model->data.coords[i];
+        key.normal   = model->data.normals[i];
+        int j = find_or_insert_obj_key(lkup, &lkup_cap, &lkup_size, &key);
+        lkup[j]  = key;
+        if (j >= out->data_count) {
+            ras_realloc(out->data,      float, 6 * (j+1));
+            ras_realloc(out->positions, v4f, j+1);
+            out->data_count = j+1;
+        }
+        ras_memcpy(out->positions + j,  &key.position, sizeof(key.position));
+        ras_memcpy(out->data + 6*j,     &key.coord,    sizeof(float) * 3);
+        ras_memcpy(out->data + 6*j + 3, &key.normal,   sizeof(float) * 3);
+        out->indices[i] = j;
+    }
+    ras_free(lkup)
+};
