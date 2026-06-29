@@ -1,6 +1,7 @@
 #ifndef RAS_ASSET_H
 #define RAS_ASSET_H
-#include <ras_math.h>
+
+#include "ras_core.h"
 
 struct ras_obj_model_t {
     struct {
@@ -37,4 +38,6 @@ int  ras_load_obj_model(const char* path, ras_obj_model_t* model);
 void ras_free_obj_model(ras_obj_model_t* const model);
 void ras_make_obj_processed(const ras_obj_model_t* const model, ras_obj_processed_t* out);
 void ras_free_obj_processed(ras_obj_processed_t* const);
+void ras_load_texture(ras_texture_t* out_tex, const char* path);
+void ras_free_texture(ras_texture_t* tex);
 #endif

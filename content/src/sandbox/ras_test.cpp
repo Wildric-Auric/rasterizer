@@ -536,17 +536,28 @@ void test_textured_plane() {
     static float x = 0;
     x += 0.01;
     ras_m4_set_rot_x(&rot_m, x);
-    ras_m4_scale(&scale_m, v3i32(10,10,1));
+    ras_m4_scale(&scale_m, v3f(1.0,1.0,1.0) * 5.0f);
     ras_m4_perspective(&proj_m, 70.0f * 3.1415f / 180.0f, (float)fmbuff->size.y / fmbuff->size.x, 1.0f, 124.0f);
     ras_m4_translate(&tr_m, v3f(0,0));
-    ras_m4_translate(&view_m, v3f(0, 0, 17));
+    ras_m4_translate(&view_m, v3f(0, 0, 10));
 
     model_m = tr_m * scale_m * rot_m;
     cmd.transform = proj_m * view_m * model_m;
     cmd.triangle_cmd.draw_mode = ras_triangle_draw_mode_user_func;
     cmd.cull_mode              = ras_orientation_none;
+
+    static ras_texture_t tex = {0, v2i32(0,0)};
+    if (tex.data == 0) {
+        ras_load_texture(&tex, "../assets/utah-teapot/textures/default.png");
+        ras_register_texture(&tex, 1);
+        v3ui8 smp;
+        ras_sample_texture(1, v2f(12,1), &smp);
+        printf("smp: %d, %d, %d\n", smp.x, smp.y, smp.z);
+    }
+    ras_register_texture(&tex, 1);
+
     cmd.triangle_cmd.frag_prg  = 2;
-    ras_register_frag_program(texture_prog,2);
+    ras_register_frag_program(texture_test_prog,2);
     ras_fill_framebuffer(fmbuff, v3ui8(10,10,20));
     ras_draw_triangle_list(&cmd); 
     ras_free(cmd.triangles);
@@ -630,6 +641,7 @@ void test_model() {
     static ras_obj_model_t     model    = {0};
     static ras_obj_processed_t model_pr = {0};
     static ras_prim_triangle_t* tris;
+    static ras_texture_t tex;
 
     bool m = 0;
     v3f teapot_scale = v3f(1,1,1)*0.2f;
@@ -647,6 +659,7 @@ void test_model() {
             ras_load_obj_model("../assets/suzanne/suzanne.obj", &model);
         else
             ras_load_obj_model("../assets/utah-teapot/teapot.obj", &model);
+        ras_load_texture(&tex, "../assets/utah-teapot/textures/default.png");
         ras_make_obj_processed(&model, &model_pr);
         printf("--------- Model Info ---------\n");
         printf("Positions Count     : %d\n", model.count.pos);
@@ -682,6 +695,7 @@ void test_model() {
     cmd.tri_cmd.triangle_cmd.frag_prg          = 1;
     cmd.tri_cmd.triangle_cmd.enable_depth_test = 1;
     cmd.tri_cmd.triangle_cmd.wireframe_width   = 0.03;
+    ras_register_texture(&tex, 1);
     ras_register_frag_program(texture_coord_prog, 1);
     float depth = 10.0;
     ras_fill_framebuffer(rdr.color_buffer, v3ui8(20,20,30));

@@ -1,5 +1,6 @@
 #include "ras_core.h"
 #include "ras_util.h"
+#include <stdio.h>
 
 ras_framebuffer_t ras_main_framebuffer;
 ras_gfx_ctx_t     gfx_ctx = {{0}};
@@ -488,4 +489,18 @@ void ras_draw_triangle_list_indexed(const ras_triangle_list_indexed_cmd_t* const
 
 void ras_register_frag_program(frag_prg_proc proc,const int idx) {
     gfx_ctx.frag_prgs[idx] = proc;
+}
+
+void ras_register_texture(ras_texture_t* tex, const int idx) {
+    gfx_ctx.texs[idx] = tex;
+}
+
+void ras_sample_texture(int idx, const v2f& c, v3ui8* out) {
+    ras_texture_t* tex = gfx_ctx.texs[idx];
+    v2f x    = c * v2f(tex->size.x, tex->size.y);
+    x.x = (int)x.x;
+    x.y = (int)x.y;
+    int off  = x.x * 4 + x.y * tex->size.x * 4;
+    off = (off >= 0 ? off : 0);
+    ras_memcpy(out, tex->data + off, 4 * sizeof(char));
 }

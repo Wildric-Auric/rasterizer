@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "ras_core.h"
 #include "ras_asset.h"
 #include "ras_math.h"
 #include "ras_util.h"
+
+#include <stb_image.h>
 
 enum model_parse_state_ {
     model_parse_state_general,
@@ -333,4 +336,14 @@ void ras_free_obj_processed(ras_obj_processed_t* const obj) {
    ras_free(obj->data);
    ras_free(obj->indices);
    ras_free(obj->positions);
+}
+
+void ras_load_texture(ras_texture_t* out_tex, const char* path) {
+    int comp;
+    out_tex->data = stbi_load(path, &out_tex->size.x, &out_tex->size.y, &comp, 4);
+}
+
+void ras_free_texture(ras_texture_t* tex) {
+    stbi_image_free(tex->data);
+    tex->data = 0;
 }

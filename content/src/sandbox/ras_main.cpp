@@ -11,7 +11,6 @@ void ras_init() {
 void (*funcs[])(void) = {
     test_draw_circle,
     test_draw_plane,
-    test_textured_plane,
     test_clipping,
     test_subdiv_sphere,
     test_draw_cube2,
@@ -21,6 +20,7 @@ void (*funcs[])(void) = {
     test_depth,
     test_indexed,
     test_model,
+    test_textured_plane,
 };
 
 const int funcs_num = sizeof(funcs) / sizeof(funcs[0]);

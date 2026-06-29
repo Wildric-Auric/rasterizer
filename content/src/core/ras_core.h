@@ -92,10 +92,15 @@ struct ras_frag_out_data_t {
     bool discard;
 };
 
+struct ras_texture_t {
+    ui8*  data;
+    v2i32 size;
+};
 typedef void (*frag_prg_proc)(const ras_frag_data_t* const data, ras_frag_out_data_t*);
 
 struct ras_gfx_ctx_t {
-    frag_prg_proc frag_prgs[256];
+    frag_prg_proc  frag_prgs[256];
+    ras_texture_t* texs     [256];
 };
 
 enum ras_keys_ {
@@ -129,5 +134,8 @@ void               ras_draw_prim_circle(const ras_framebuffer_t* const, const ra
 void               ras_draw_prim_triangle(const ras_triangle_draw_data_t* const);
 void               ras_draw_triangle_list(const ras_triangle_list_cmd_t* const);
 void               ras_draw_triangle_list_indexed(const ras_triangle_list_indexed_cmd_t* const);
+//  ------- Asset/Pixel methods ----------
+void               ras_register_texture(ras_texture_t*, const int);
+void               ras_sample_texture(int idx, const v2f& c, v3ui8* out);
 
 #endif
