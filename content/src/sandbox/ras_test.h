@@ -5,6 +5,7 @@
 
 void interpolate_v3_prog(const ras_frag_data_t* const, ras_frag_out_data_t*);
 void texture_prog(const ras_frag_data_t* const, ras_frag_out_data_t*);
+void texture_coord_prog(const ras_frag_data_t* const, ras_frag_out_data_t*);
 
 
 void test_draw_circle();

@@ -157,15 +157,15 @@ int ras_load_obj_model(const char* path, ras_obj_model_t* out_data) {
                 parse_word(f, wrd, &endl, &r);
                 int id  = out_data->count.coord;
                 ras_grow_realloc_n(&out_data->data.coords, v3f, &tex_cap, id + 1);
-                out_data->data.coords[id].x = atoi(wrd);
+                out_data->data.coords[id].x = atof(wrd);
                 out_data->count.coord++;
                 if (endl) { state = model_parse_state_general; break; }
                 parse_word(f, wrd, &endl, &r);
                 if (!wrd[0]) { state = model_parse_state_general; break; }
-                out_data->data.coords[id].y = atoi(wrd);
+                out_data->data.coords[id].y = atof(wrd);
                 if (endl) {state = model_parse_state_general; break;}
                 parse_word(f, wrd, &endl, &r);
-                out_data->data.coords[id].z = atoi(wrd);
+                out_data->data.coords[id].z = atof(wrd);
                 state = model_parse_state_general;
                 break;
             }
@@ -173,11 +173,11 @@ int ras_load_obj_model(const char* path, ras_obj_model_t* out_data) {
                 parse_word(f, wrd, &endl, &r);
                 int id = out_data->count.normal;
                 ras_grow_realloc_n(&out_data->data.normals, v3f, &normal_cap, id + 1);
-                out_data->data.normals[id].x = atoi(wrd);
+                out_data->data.normals[id].x = atof(wrd);
                 parse_word(f, wrd, &endl, &r);
-                out_data->data.normals[id].y = atoi(wrd);
+                out_data->data.normals[id].y = atof(wrd);
                 parse_word(f, wrd, &endl, &r);
-                out_data->data.normals[id].z = atoi(wrd);
+                out_data->data.normals[id].z = atof(wrd);
                 out_data->count.normal++;
                 if (!endl) {
                     parse_word(f, wrd, &endl, &r);
@@ -279,48 +279,47 @@ struct ras_obj_key_t {
     v3f normal;
 };
 
-struct ras_obj_processed_t {
-    v4f*    positions;
-    float*  data;
-    ui32*   indices;
-    int     idx_count;
-    int     data_count; 
-};
-
 int find_obj_key(ras_obj_key_t* obj, ras_obj_key_t* key, int size) {
     for (int i = 0; i < size; ++i) {
-        if (obj[i].coord == key->coord && obj[i].position == key->position && obj[i].normal == key->normal)
+        if (   obj[i].coord == key->coord 
+            && obj[i].position == key->position 
+            && obj[i].normal == key->normal)
             return i;
     }
     return -1;
 }
 
-int find_or_insert_obj_key(ras_obj_key_t* obj, int* cap, int* size, ras_obj_key_t* key) {
-    int idx = find_obj_key(obj, key, *size);
+int find_or_insert_obj_key(ras_obj_key_t** obj, int* cap, int* size, ras_obj_key_t* key) {
+    int idx = find_obj_key(*obj, key, *size);
     if (idx != -1) return idx;
-    ras_grow_realloc_n(&obj, ras_obj_key_t, cap, *size);
-    obj[*size] =  *key;
+    ras_grow_realloc_n(obj, ras_obj_key_t, cap, *size + 1);
+    (*obj)[*size] =  *key;
     (*size)++; 
     return *size - 1;
 }
 
-void ras_make_obj_tris_and_data(const ras_obj_model_t* const model, ras_obj_processed_t* out) {
-    out->idx_count  = {};
+void ras_make_obj_processed(const ras_obj_model_t* const model, ras_obj_processed_t* out) {
+    *out = {};
+    out->idx_count  = model->idx_count;
     int lkup_cap    = 1024;
     int lkup_size   = 0;
+    const int st_count = 6; //stride count 3 coord 3 normal
     ras_obj_key_t* lkup = ras_alloc_n(ras_obj_key_t, lkup_cap);
-    out->indices = ras_alloc_n(ui32, model->idx_count);
+    out->indices         = ras_alloc_n(ui32, model->idx_count);
+    out->data            = ras_alloc_n(float, 6);
+    out->positions       = ras_alloc_n(v4f, 1);
+    out->data_count      = 0;
     ras_obj_key_t key;
+    int j;
     for (int i = 0; i < model->idx_count; ++i) {
-        key.position = model->data.pos[i];
-        key.coord    = model->data.coords[i];
-        key.normal   = model->data.normals[i];
-        int j = find_or_insert_obj_key(lkup, &lkup_cap, &lkup_size, &key);
-        lkup[j]  = key;
+        key.position = model->data.pos[model->indices.pos[i]];
+        key.coord    = model->data.coords[model->indices.coord[i]];
+        key.normal   = model->data.normals[model->indices.normal[i]];
+        j = find_or_insert_obj_key(&lkup, &lkup_cap, &lkup_size, &key);
         if (j >= out->data_count) {
             ras_realloc(out->data,      float, 6 * (j+1));
             ras_realloc(out->positions, v4f, j+1);
-            out->data_count = j+1;
+            out->data_count++;
         }
         ras_memcpy(out->positions + j,  &key.position, sizeof(key.position));
         ras_memcpy(out->data + 6*j,     &key.coord,    sizeof(float) * 3);
@@ -329,3 +328,9 @@ void ras_make_obj_tris_and_data(const ras_obj_model_t* const model, ras_obj_proc
     }
     ras_free(lkup)
 };
+
+void ras_free_obj_processed(ras_obj_processed_t* const obj) {
+   ras_free(obj->data);
+   ras_free(obj->indices);
+   ras_free(obj->positions);
+}

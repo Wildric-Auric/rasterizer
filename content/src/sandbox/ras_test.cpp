@@ -627,7 +627,8 @@ void test_model() {
     rdr.color_buffer = fmbuff;
     rdr.depth_buffer = &dbuff;
  
-    static ras_obj_model_t model = {0};
+    static ras_obj_model_t     model    = {0};
+    static ras_obj_processed_t model_pr = {0};
     static ras_prim_triangle_t* tris;
 
     bool m = 0;
@@ -646,11 +647,15 @@ void test_model() {
             ras_load_obj_model("../assets/suzanne/suzanne.obj", &model);
         else
             ras_load_obj_model("../assets/utah-teapot/teapot.obj", &model);
+        ras_make_obj_processed(&model, &model_pr);
         printf("--------- Model Info ---------\n");
-        printf("Positions Count : %d\n", model.count.pos);
-        printf("Indices         : %d\n", model.idx_count);
-        printf("Coords Count    : %d\n", model.count.coord);
-        printf("Normal Count    : %d\n", model.count.normal);
+        printf("Positions Count     : %d\n", model.count.pos);
+        printf("Indices             : %d\n", model.idx_count);
+        printf("Coords Count        : %d\n", model.count.coord);
+        printf("Normal Count        : %d\n", model.count.normal);
+        printf("           ---------         \n");
+        printf("Processed Indices Count: %d\n", model_pr.idx_count);
+        printf("Data Count             : %d\n", model_pr.data_count);
         printf("------------------------------\n");
     }
     m4f   proj_m (1.0f), model_m(1.0f), view_m (1.0f);
@@ -664,20 +669,20 @@ void test_model() {
     ras_m4_translate(&view_m, *tr);
 
     model_m = tr_m * scale_m * rot_m;
-    cmd.idx_count  = model.idx_count;
-    cmd.vert_count = model.count.pos;
-    cmd.vertices   = model.data.pos;
-    cmd.indices    = model.indices.pos;
+    cmd.idx_count  = model_pr.idx_count;
+    cmd.vert_count = model_pr.data_count;
+    cmd.vertices   = model_pr.positions;
+    cmd.indices    = model_pr.indices;
+    cmd.tri_cmd.tris_data.stride_count = 6;
+    cmd.tri_cmd.tris_data.data         = model_pr.data;
     cmd.tri_cmd.transform = proj_m * view_m * model_m;
-    cmd.tri_cmd.count     = 0;
-    cmd.tri_cmd.triangles = 0;
-    cmd.tri_cmd.tris_data.data = 0; cmd.tri_cmd.tris_data.stride_count = 0;
     cmd.tri_cmd.renderbuff = &rdr;
     cmd.tri_cmd.cull_mode                      = ras_orientation_cw;
-    cmd.tri_cmd.triangle_cmd.draw_mode         = ras_triangle_draw_mode_wireframe;
+    cmd.tri_cmd.triangle_cmd.draw_mode         = ras_triangle_draw_mode_user_func;
+    cmd.tri_cmd.triangle_cmd.frag_prg          = 1;
     cmd.tri_cmd.triangle_cmd.enable_depth_test = 1;
     cmd.tri_cmd.triangle_cmd.wireframe_width   = 0.03;
-
+    ras_register_frag_program(texture_coord_prog, 1);
     float depth = 10.0;
     ras_fill_framebuffer(rdr.color_buffer, v3ui8(20,20,30));
     ras_fill_framebuffer_alpha(&dbuff, (v4ui8*)&depth);

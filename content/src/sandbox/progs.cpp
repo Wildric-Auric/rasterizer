@@ -25,4 +25,15 @@ void texture_prog(const ras_frag_data_t* const frag_d, ras_frag_out_data_t* out_
     //*out_color = v3f(c.x*c.y*255.0, c.x*c.y*255.0, c.x*c.y*255.0);
 }
 
+void texture_coord_prog(const ras_frag_data_t* const frag_d, ras_frag_out_data_t* out_d) {
+    v2f x      = v2f(frag_d->v_data[0][0], frag_d->v_data[0][1]);
+    v2f y      = v2f(frag_d->v_data[1][0], frag_d->v_data[1][1]);
+    v2f z      = v2f(frag_d->v_data[2][0], frag_d->v_data[2][1]);
+    v2f c      = x * frag_d->bary->x + y * frag_d->bary->y + z * frag_d->bary->z;
+    c = c * 255.0f;
+    out_d->color.x = c.x;
+    out_d->color.y = c.y;
+    out_d->color.z = 255;
+}
+
 #endif
