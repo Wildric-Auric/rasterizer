@@ -100,6 +100,7 @@ void  ras_draw_prim_triangle(const ras_triangle_draw_data_t* const arg) {
     v2i32 p0 = v2i32((frag_d.v_pos[0]->x + 1) * screen_size.x / 2.0, (frag_d.v_pos[0]->y + 1) * screen_size.y / 2.0);
     v2i32 p1 = v2i32((frag_d.v_pos[1]->x + 1) * screen_size.x / 2.0, (frag_d.v_pos[1]->y + 1) * screen_size.y / 2.0);
     v2i32 p2 = v2i32((frag_d.v_pos[2]->x + 1) * screen_size.x / 2.0, (frag_d.v_pos[2]->y + 1) * screen_size.y / 2.0);
+    if (p0 == p2 || p1 == p2 || p0 == p1) return;
     v2i32 tmp    = p1; 
     float* tmp_d = v1d;
     bx.x = ras_min3(p0.x, p1.x, p2.x);
@@ -128,8 +129,10 @@ void  ras_draw_prim_triangle(const ras_triangle_draw_data_t* const arg) {
             if ((dt2 = ras_det2(v1, p - p1)) < 0) continue;
             if ((dt3 = ras_det2(v2, p - p2)) < 0) continue;
             //--------- calculate barycentric coords --------------- 
-            bary.x = (float)dt2 / (float)ras_det2(v1, p0 - p1);
-            bary.y = (float)dt3 / (float)ras_det2(v2, p1 - p2);
+            if (v1 == v2i32(-8, -1) && p0 == v2i32(630, 390) && p1 == v2i32(638, 391)) 
+                int xx = 69;
+            bary.x = dt2 == 0 ? 0 : (float)dt2 / (float)ras_det2(v1, p0 - p1);
+            bary.y = dt3 == 0 ? 0 : (float)dt3 / (float)ras_det2(v2, p1 - p2);
             bary.z = (1.0f - bary.x - bary.y);
             //--------- apply barycentric correction --------------- 
             bary.x /= frag_d.v_pos[0]->w;
@@ -501,6 +504,5 @@ void ras_sample_texture(int idx, const v2f& c, v3ui8* out) {
     x.x = (int)x.x;
     x.y = (int)x.y;
     int off  = x.x * 4 + x.y * tex->size.x * 4;
-    off = (off >= 0 ? off : 0);
     ras_memcpy(out, tex->data + off, 4 * sizeof(char));
 }
