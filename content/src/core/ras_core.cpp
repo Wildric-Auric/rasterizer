@@ -411,8 +411,8 @@ void ras_draw_list_process_triangle(const ras_triangle_list_cmd_t* const cmd,
     float det = ras_det2(ras_to_v2f((tri->position[1]/tri->position[1].w - tri->position[0]/tri->position[0].w)), 
                    ras_to_v2f(tri->position[2]/tri->position[2].w - tri->position[0]/tri->position[0].w)); //todo:: avoid doing this twice in perspective div below 
     switch (cmd->cull_mode) {
-        case ras_orientation_cc: { if (det > 0) return; }
-        case ras_orientation_cw: { if (det < 0) return; }
+        case ras_orientation_cc: { if (det > 0) return; break;}
+        case ras_orientation_cw: { if (det < 0) return; break;}
         default: break;
     }
     //----------clipping-------------------------
